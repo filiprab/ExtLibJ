@@ -50,6 +50,13 @@ public class BIP340Util {
         }
       }
 
+    /**
+     *
+     * @param originalPrivKey The original private key.
+     * @param hash For more complex Taproot functionality you would commit to a scripthash tree. For single-sig wallets this will almost always be null.
+     * @return Returns a private key in bytes.
+     * @throws IOException
+     */
     public static byte[] getTweakedPrivKey(ECKey originalPrivKey, @Nullable byte[] hash) throws IOException {
         BigInteger privKey0 = originalPrivKey.getPrivKey();
         Point privPoint = Point.mul(Point.getG(), originalPrivKey.getPrivKey());
