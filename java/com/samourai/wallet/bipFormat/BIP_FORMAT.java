@@ -127,5 +127,39 @@ public class BIP_FORMAT {
         }
     };
 
+    public static final BipFormat TAPROOT = new BipFormatImpl("TAPROOT", "Taproot (P2TR)") {
+        @Override
+        public String getPub(HD_Account hdAccount) {
+            return hdAccount.zpubstr();
+        }
+
+        @Override
+        public String getAddressString(HD_Address hdAddress) {
+            return hdAddress.getAddressStringSegwitNative();
+        }
+
+        @Override
+        public void sign(Transaction tx, int inputIndex, ECKey key) throws Exception {
+            TransactionInput txInput = tx.getInput(inputIndex);
+            Coin value = txInput.getValue();
+
+            SegwitAddress segwitAddress = new SegwitAddress(key.getPubKey(), tx.getParams());
+            final Script redeemScript = segwitAddress.taprootRedeemScript();
+
+            // TODO: Implement the actual Schnorr signing part. Still need to calc sighash for Schnorr signing.
+            TransactionSignature sig =
+                    tx.calculateWitnessSignature(
+                            inputIndex,
+                            key,
+                            redeemScript.scriptCode(),
+                            value,
+                            Transaction.SigHash.ALL,
+                            false);
+            final TransactionWitness witness = new TransactionWitness(1);
+            witness.setPush(0, sig.encodeToBitcoin());
+            tx.setWitness(inputIndex, witness);
+        }
+    };
+
     public static final BipFormatSupplier PROVIDER = new BipFormatSupplierImpl();
 }
