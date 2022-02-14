@@ -3,7 +3,6 @@ package com.samourai.wallet.bip340;
 import com.samourai.wallet.segwit.bech32.*;
 
 import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Utils;
 import org.bitcoinj.params.MainNetParams;
 
 import org.bouncycastle.util.encoders.Hex;
@@ -84,20 +83,18 @@ public class BIP340Test {
 
   @Test
   public void publicKeyTweakingTest() throws Exception {
-    ECKey key = ECKey.fromPublicOnly(Utils.HEX.decode("02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d"));
-    String p2TRAddress = BIP340Util.getP2TRAddress(MainNetParams.get(), key);
+    ECKey key = ECKey.fromPublicOnly(Hex.decode("02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d"));
+    String p2TRAddress = BIP340Util.getP2TRAddress(MainNetParams.get(), key, true);
     assert("bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5".equals(p2TRAddress));
   }
 
   @Test
   public void privateKeyTweakingTest() throws Exception {
-    ECKey key = ECKey.fromPrivate(Utils.HEX.decode("77863416be0d0665e517e1c375fd6f75839544eca553675ef7fdf4949518ebaa"));
-    byte[] merkleRoot = Utils.HEX.decode("ab179431c28d3b68fb798957faf5497d69c883c6fb1e1cd9f81483d87bac90cc");
-    byte[] tweakedPrivateKey = BIP340Util.getTweakedPrivKey(key, merkleRoot);
-    ECKey tweakedKey = ECKey.fromPrivate(tweakedPrivateKey);
-    Point point = BIP340Util.getInternalPubkey(tweakedKey);
-    String p2TRAddress = BIP340Util.getP2TRAddress(MainNetParams.get(), point);
+    ECKey key = ECKey.fromPrivate(Hex.decode("77863416be0d0665e517e1c375fd6f75839544eca553675ef7fdf4949518ebaa"));
+    byte[] merkleRoot = Hex.decode("ab179431c28d3b68fb798957faf5497d69c883c6fb1e1cd9f81483d87bac90cc");
+    ECKey tweakedPrivateKey = BIP340Util.getTweakedPrivKey(key, merkleRoot);
+    String p2TRAddress = BIP340Util.getP2TRAddress(MainNetParams.get(), tweakedPrivateKey, false);
     assert("bc1pwl3s54fzmk0cjnpl3w9af39je7pv5ldg504x5guk2hpecpg2kgsqaqstjq".equals(p2TRAddress));
-    assert("ec18ce6af99f43815db543f47b8af5ff5df3b2cb7315c955aa4a86e8143d2bf5".equals(Utils.HEX.encode(tweakedPrivateKey)));
+    assert("ec18ce6af99f43815db543f47b8af5ff5df3b2cb7315c955aa4a86e8143d2bf5".equals(Hex.toHexString(tweakedPrivateKey.getPrivKeyBytes())));
   }
 }

@@ -38,9 +38,14 @@ public class BIP340Util {
         }
       }
 
-      public static String getP2TRAddress(NetworkParameters params, ECKey eckey) {
+      public static String getP2TRAddress(NetworkParameters params, ECKey eckey, boolean tweak) {
         Point iPoint = getInternalPubkey(eckey);
-        Point oPoint = getTweakedPubKeyFromPoint(iPoint);
+        Point oPoint = null;
+        if(tweak) {
+            oPoint = getTweakedPubKeyFromPoint(iPoint);
+        } else {
+            oPoint = iPoint;
+        }
         if(Point.isSecp256k1(oPoint.toBytes())) {
           String address = Bech32Segwit.encode(params instanceof TestNet3Params ? "tb" : "bc", (byte)0x01, BigIntegers.asUnsignedByteArray(oPoint.getX()));
           return address;
@@ -57,7 +62,7 @@ public class BIP340Util {
      * @return Returns a private key in bytes.
      * @throws IOException
      */
-    public static byte[] getTweakedPrivKey(ECKey originalPrivKey, @Nullable byte[] hash) throws IOException {
+    public static ECKey getTweakedPrivKey(ECKey originalPrivKey, @Nullable byte[] hash) throws IOException {
         BigInteger privKey0 = originalPrivKey.getPrivKey();
         Point privPoint = Point.mul(Point.getG(), originalPrivKey.getPrivKey());
         BigInteger privKey;
@@ -76,8 +81,7 @@ public class BIP340Util {
         }
         byte[] tweak = Sha256Hash.hash(bos.toByteArray());
         ECKey tweakKey = ECKey.fromPrivate(tweak);
-        ECKey tweakedPrivKey = ECKey.fromPrivate((privKey.add(tweakKey.getPrivKey())).mod(Point.getn()));
-        return tweakedPrivKey.getPrivKeyBytes();
+        return ECKey.fromPrivate((privKey.add(tweakKey.getPrivKey())).mod(Point.getn()));
     }
 
     public static Point getTweakedPubKeyFromPoint(Point ipoint) {
