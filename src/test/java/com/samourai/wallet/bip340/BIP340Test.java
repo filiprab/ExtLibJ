@@ -97,4 +97,24 @@ public class BIP340Test {
     assert("bc1pwl3s54fzmk0cjnpl3w9af39je7pv5ldg504x5guk2hpecpg2kgsqaqstjq".equals(p2TRAddress));
     assert("ec18ce6af99f43815db543f47b8af5ff5df3b2cb7315c955aa4a86e8143d2bf5".equals(Hex.toHexString(tweakedPrivateKey.getPrivKeyBytes())));
   }
+
+  @Test
+  public void privateKeyTweakingTest2() throws Exception {
+    ECKey key = ECKey.fromPrivate(Hex.decode("415cfe9c15d9cea27d8104d5517c06e9de48e2f986b695e4f5ffebf230e725d8"));
+    byte[] merkleRoot = Hex.decode("2f6b2c5397b6d68ca18e09a3f05161668ffe93a988582d55c6f07bd5b3329def");
+    ECKey tweakedPrivateKey = BIP340Util.getTweakedPrivKey(key, merkleRoot);
+    String p2TRAddress = BIP340Util.getP2TRAddress(MainNetParams.get(), tweakedPrivateKey, false);
+    assert("bc1pw5tf7sqp4f50zka7629jrr036znzew70zxyvvej3zrpf8jg8hqcssyuewe".equals(p2TRAddress));
+    assert("241c14f2639d0d7139282aa6abde28dd8a067baa9d633e4e7230287ec2d02901".equals(Hex.toHexString(tweakedPrivateKey.getPrivKeyBytes())));
+  }
+
+  @Test
+  public void privateKeyTweakingTestNoMerkleRoot() throws Exception {
+    ECKey key = ECKey.fromPrivate(Hex.decode("6b973d88838f27366ed61c9ad6367663045cb456e28335c109e30717ae0c6baa"));
+    byte[] merkleRoot = null;
+    ECKey tweakedPrivateKey = BIP340Util.getTweakedPrivKey(key, merkleRoot);
+    String p2TRAddress = BIP340Util.getP2TRAddress(MainNetParams.get(), tweakedPrivateKey, false);
+    assert("bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5".equals(p2TRAddress));
+    assert("2405b971772ad26915c8dcdf10f238753a9b837e5f8e6a86fd7c0cce5b7296d9".equals(Hex.toHexString(tweakedPrivateKey.getPrivKeyBytes())));
+  }
 }
