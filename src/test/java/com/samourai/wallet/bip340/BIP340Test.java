@@ -88,6 +88,7 @@ public class BIP340Test {
     assert("bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5".equals(p2TRAddress));
   }
 
+  // test vectors: https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
   @Test
   public void privateKeyTweakingTest() throws Exception {
     ECKey key = ECKey.fromPrivate(Hex.decode("77863416be0d0665e517e1c375fd6f75839544eca553675ef7fdf4949518ebaa"));
