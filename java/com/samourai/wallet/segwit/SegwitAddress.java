@@ -147,7 +147,7 @@ public class SegwitAddress {
 
         byte[] tweakedPubKey = tweakedPubKeyPoint.toBytes();
         byte[] buf = new byte[2 + tweakedPubKey.length];
-        buf[0] = (byte)0x01;  // OP_0
+        buf[0] = (byte)0x51;  // OP_1
         buf[1] = (byte)0x20;  // push 32 bytes
         System.arraycopy(tweakedPubKey, 0, buf, 2, tweakedPubKey.length); // tweaked key
 
