@@ -159,7 +159,11 @@ public class SpendBuilder {
 
     private long computeNeededAmount(WhirlpoolAccount account, long amount, BipFormat changeFormat, BigInteger feePerKb) {
         long neededAmount = 0L;
-        if (changeFormat == BIP_FORMAT.SEGWIT_NATIVE) {
+        if (changeFormat == BIP_FORMAT.TAPROOT) {
+            System.out.println("TAPROOTTTTT");
+            neededAmount += FeeUtil.getInstance().estimatedFeeSegwit(new FeeUtil.OutpointCount(0, 0, 0, UTXO.countOutpoints(utxoProvider.getUtxos(account, BIP_FORMAT.TAPROOT))), 4, feePerKb).longValue();
+//                    Log.d("segwit:" + neededAmount);
+        } else if (changeFormat == BIP_FORMAT.SEGWIT_NATIVE) {
             neededAmount += FeeUtil.getInstance().estimatedFeeSegwit(0, 0, UTXO.countOutpoints(utxoProvider.getUtxos(account, BIP_FORMAT.SEGWIT_NATIVE)), 4, feePerKb).longValue();
 //                    Log.d("segwit:" + neededAmount);
         } else if (changeFormat == BIP_FORMAT.SEGWIT_COMPAT) {

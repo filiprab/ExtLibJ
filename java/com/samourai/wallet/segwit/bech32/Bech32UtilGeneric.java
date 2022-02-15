@@ -74,6 +74,7 @@ public class Bech32UtilGeneric {
 
     public TransactionOutput getTransactionOutput(String address, long value, NetworkParameters params) throws Exception {
         byte[] scriptPubKey = computeScriptPubKey(address, params);
+        System.out.println(Hex.toHexString(scriptPubKey));
         return new TransactionOutput(params, null, Coin.valueOf(value), scriptPubKey);
     }
 
@@ -91,7 +92,10 @@ public class Bech32UtilGeneric {
     }
 
     public String toBech32(byte[] pubkey, NetworkParameters params) {
-        return new SegwitAddress(pubkey, params).getBech32AsString();
+        return toBech32(pubkey, 0x00, params);
     }
 
+    public String toBech32(byte[] pubkey, int version, NetworkParameters params) {
+        return new SegwitAddress(pubkey, params).getBech32AsString(version);
+    }
 }

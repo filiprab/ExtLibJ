@@ -140,7 +140,7 @@ public class BIP_FORMAT {
 
         @Override
         public String getAddressString(HD_Address hdAddress) {
-            return hdAddress.getAddressStringSegwitNative();
+            return hdAddress.getAddressStringTaproot();
         }
 
         @Override
@@ -161,6 +161,8 @@ public class BIP_FORMAT {
 
             final TransactionWitness witness = TransactionWitness.createTaprootWitness(sig, Transaction.SigHash.ALL, false);
             tx.setWitness(inputIndex, witness);
+
+            System.out.println();
         }
     };
 

@@ -74,6 +74,10 @@ public class SpendTx {
             throw new SpendException(SpendError.MAKING);
         }
         if ((tx.hasWitness() && (fee < tx.getVirtualTransactionSize())) || (!tx.hasWitness() && (fee < serialized.length))) {
+            System.out.println("FEE:: " + tx.getFee().value + " vs. " + fee);
+            System.out.println(tx.getVirtualTransactionSize());
+            System.out.println(tx.toString());
+
             throw new SpendException(SpendError.INSUFFICIENT_FEE);
         }
 

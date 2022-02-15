@@ -96,7 +96,7 @@ public class SpendSelectionSimple extends SpendSelection {
     @Override
     public SpendTx spendTx(long amount, String address, BipFormat addressFormat, WhirlpoolAccount account, boolean rbfOptIn, NetworkParameters params, BigInteger feePerKb, Runnable restoreChangeIndexes, UtxoProvider utxoProvider) throws SpendException {
         List<MyTransactionOutPoint> outpoints = getSpendFrom();
-        Triple<Integer, Integer, Integer> outpointTypes = FeeUtil.getInstance().getOutpointCount(new Vector(outpoints), params);
+        FeeUtil.OutpointCount outpointTypes = FeeUtil.getInstance().getOutpointCountNew(new Vector(outpoints), params);
         BigInteger fee;
         long change;
         Map<String, Long> receivers = new HashMap<>();
@@ -104,7 +104,7 @@ public class SpendSelectionSimple extends SpendSelection {
             // NO CHANGE = 1 output
 
             // estimate fee
-            fee = FeeUtil.getInstance().estimatedFeeSegwit(outpointTypes.getLeft(), outpointTypes.getMiddle(), outpointTypes.getRight(), 1, feePerKb);
+            fee = FeeUtil.getInstance().estimatedFeeSegwit(outpointTypes, 1, feePerKb);
 
             // adjust amount
             amount -= fee.longValue();
@@ -116,7 +116,7 @@ public class SpendSelectionSimple extends SpendSelection {
             // WITH CHANGE = 2 outputs
 
             // estimate fee
-            fee = FeeUtil.getInstance().estimatedFeeSegwit(outpointTypes.getLeft(), outpointTypes.getMiddle(), outpointTypes.getRight(), 2, feePerKb);
+            fee = FeeUtil.getInstance().estimatedFeeSegwit(outpointTypes, 2, feePerKb);
 
             // compute change
             change = computeChange(amount, fee);

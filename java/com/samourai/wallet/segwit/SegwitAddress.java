@@ -82,11 +82,21 @@ public class SegwitAddress {
     }
 
     public String getBech32AsString()    {
+        return getBech32AsString(0x00);
+    }
+
+    public String getBech32AsString(int version)    {
 
         String address = null;
 
         try {
-            address = Bech32Segwit.encode(params instanceof TestNet3Params ? "tb" : "bc", (byte)0x00, Utils.sha256hash160(ecKey.getPubKey()));
+            byte[] addressData = null;
+            if(version == 0x00) {
+                addressData = Utils.sha256hash160(ecKey.getPubKey());
+            } else {
+                addressData = BIP340Util.getInternalPubkey(ecKey).toBytes();
+            }
+            address = Bech32Segwit.encode(params instanceof TestNet3Params ? "tb" : "bc", (byte)version, addressData);
         }
         catch(Exception e) {
             ;

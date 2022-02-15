@@ -59,6 +59,10 @@ public class HD_Address {
         return Bech32UtilGeneric.getInstance().toBech32(getPubKey(), mParams);
     }
 
+    public String getAddressStringTaproot() {
+        return Bech32UtilGeneric.getInstance().toBech32(getPubKey(), 0x01, mParams);
+    }
+
     public String getPrivateKeyString() {
 
         if(ecKey.hasPrivKey()) {

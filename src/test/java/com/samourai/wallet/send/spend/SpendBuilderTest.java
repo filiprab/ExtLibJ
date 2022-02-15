@@ -33,9 +33,12 @@ public class SpendBuilderTest {
     private final SpendBuilder spendBuilder;
     private final SimpleUtxoProvider utxoProvider;
     private BipWallet depositWallet84;
+    private BipWallet depositWallet86;
 
     private static final String ADDRESS_RECEIVER_84 = "tb1q9m8cc0jkjlc9zwvea5a2365u6px3yu646vgez4";
+    private static final String ADDRESS_RECEIVER_86 = "tb1p02m8k60q96amn9xkr6a6s4cda2qvywuu9kyhe0fupeqjme0s9eask5l3ls";
     private static String[] ADDRESS_CHANGE_84;
+    private static String[] ADDRESS_CHANGE_86;
     private static final String SEED_WORDS = "all all all all all all all all all all all all";
     private static final String SEED_PASSPHRASE = "test";
 
@@ -44,7 +47,9 @@ public class SpendBuilderTest {
         WalletSupplierImpl walletSupplier = new WalletSupplierImpl(new MemoryIndexHandlerSupplier(), bip44w);
         utxoProvider = new SimpleUtxoProvider(bip44w.getParams(), walletSupplier);
         depositWallet84 = walletSupplier.getWallet(BIP_WALLET.DEPOSIT_BIP84);
+        depositWallet86 = walletSupplier.getWallet(BIP_WALLET.DEPOSIT_BIP86);
         Assertions.assertNotNull(depositWallet84);
+        Assertions.assertNotNull(depositWallet86);
         spendBuilder = new SpendBuilder(params, utxoProvider, new Runnable() {
             @Override
             public void run() {}
@@ -53,6 +58,11 @@ public class SpendBuilderTest {
         ADDRESS_CHANGE_84 = new String[4];
         for (int i=0; i<4; i++) {
             ADDRESS_CHANGE_84[i] = utxoProvider.getChangeAddress(WhirlpoolAccount.DEPOSIT, BIP_FORMAT.SEGWIT_NATIVE);
+        }
+
+        ADDRESS_CHANGE_86 = new String[4];
+        for (int i=0; i<4; i++) {
+            ADDRESS_CHANGE_86[i] = utxoProvider.getChangeAddress(WhirlpoolAccount.DEPOSIT, BIP_FORMAT.TAPROOT);
         }
 
         SpendSelectionBoltzmann._setTestMode(true);
@@ -66,6 +76,15 @@ public class SpendBuilderTest {
     private SpendTx spend84(WhirlpoolAccount account, long amount, boolean stonewall) throws Exception {
         // spend
         String addressReceiver = ADDRESS_RECEIVER_84;
+        BigInteger feePerKb = BigInteger.valueOf(50);
+        BipFormat forcedChangeFormat = null;
+        List<MyTransactionOutPoint> preselectedInputs = null;
+        return spendBuilder.preview(account, addressReceiver, amount, stonewall, true, feePerKb, forcedChangeFormat, preselectedInputs);
+    }
+
+    private SpendTx spend86(WhirlpoolAccount account, long amount, boolean stonewall) throws Exception {
+        // spend
+        String addressReceiver = ADDRESS_RECEIVER_86;
         BigInteger feePerKb = BigInteger.valueOf(50);
         BipFormat forcedChangeFormat = null;
         List<MyTransactionOutPoint> preselectedInputs = null;
@@ -179,6 +198,23 @@ public class SpendBuilderTest {
         verify(spendTx, SpendType.STONEWALL, Lists.of(utxo3, utxo4, utxo2, utxo5, utxo6), 600, amount, changeExpected, BIP_FORMAT.SEGWIT_NATIVE, 475, 1897,
                 Lists.of(ADDRESS_CHANGE_84[2], ADDRESS_CHANGE_84[1], ADDRESS_RECEIVER_84, ADDRESS_CHANGE_84[0]),
                 Lists.of(19700L, amount, amount, 9700L));
+    }
+
+    @Test
+    public void simpleSpend86_single_taproot() throws Exception {
+        WhirlpoolAccount account = WhirlpoolAccount.DEPOSIT;
+        long amount = 10000;
+
+        // set utxos
+        UTXO utxo1 = utxoProvider.addUtxo(depositWallet86, 10000);
+        UTXO utxo2 = utxoProvider.addUtxo(depositWallet86, 20000);
+
+        // should select smallest single utxo
+        SpendTx spendTx = spend86(account, amount, true);
+        long changeExpected = 9845;
+        verify(spendTx, SpendType.SIMPLE, Lists.of(utxo2), 155, amount, changeExpected, BIP_FORMAT.TAPROOT, 155, 617,
+                Lists.of(ADDRESS_RECEIVER_86, ADDRESS_CHANGE_86[0]),
+                Lists.of(amount,changeExpected));
     }
 
     private void verify(SpendTx spendTx, SpendType spendType, Collection<UTXO> utxos, long fee, long amount, long change, BipFormat changeFormat, int vSize, int weight, Collection<String> spendToAdresses, Collection<Long> spendToAmounts) {

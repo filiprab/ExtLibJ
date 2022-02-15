@@ -15,6 +15,7 @@ import com.samourai.wallet.util.TxUtil;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
+import org.bitcoinj.script.ScriptChunk;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
@@ -84,8 +85,9 @@ public class SendFactoryGeneric {
 
         List<TransactionInput> inputs = new ArrayList<>();
         for(MyTransactionOutPoint outPoint : unspent) {
+            System.out.println("???");
             Script script = outPoint.computeScript();
-            if(script.getScriptType() == Script.ScriptType.NO_TYPE) {
+            if(getScriptType(script) == Script.ScriptType.NO_TYPE) {
                 continue;
             }
 
@@ -190,4 +192,29 @@ public class SendFactoryGeneric {
         }
     }
 
+    public Script.ScriptType getScriptType(Script script) {
+        Script.ScriptType type = Script.ScriptType.NO_TYPE;
+        if (script.isSentToAddress()) {
+            type = Script.ScriptType.P2PKH;
+        } else if (script.isSentToRawPubKey()) {
+            type = Script.ScriptType.PUB_KEY;
+        } else if (script.isPayToScriptHash()) {
+            type = Script.ScriptType.P2SH;
+        } else if (script.isSentToP2WPKH()) {
+            type = Script.ScriptType.P2WPKH;
+        } else if (script.isSentToP2WSH()) {
+            type = Script.ScriptType.P2WSH;
+        } else if (isSentToP2TR(script)) {
+            System.out.println("FUCK");
+            type = Script.ScriptType.P2WPKH;
+        }
+
+        return type;
+    }
+
+    public boolean isSentToP2TR(Script script) {
+        System.out.println(script.getChunks().get(0));
+        System.out.println(Hex.toHexString(script.getProgram()));
+        return Hex.toHexString(script.getProgram()).startsWith("5120");
+    }
 }
