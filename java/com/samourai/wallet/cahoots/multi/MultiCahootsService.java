@@ -12,6 +12,7 @@ import com.samourai.wallet.util.RandomUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.bitcoinj.core.*;
+import org.bitcoinj.script.Script;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -616,14 +617,38 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             log.debug("destination:" + stonewall1.getDestination());
         }
 
-        if (transaction.getOutputs() != null && transaction.getOutputs().size() == 1) {
-            Coin value = transaction.getOutputs().get(0).getValue();
-            Coin _value = Coin.valueOf(value.longValue() - (fee / 2L));
-            if (log.isDebugEnabled()) {
-                log.debug("output value post fee:" + _value);
+        if (transaction.getOutputs() != null && transaction.getOutputs().size() == 2) {
+
+            int idx = -1;
+            for (int i = 0; i < 2; i++) {
+                byte[] buf = transaction.getOutputs().get(i).getScriptBytes();
+                byte[] script = new byte[buf.length];
+                script[0] = 0x00;
+                System.arraycopy(buf, 1, script, 1, script.length - 1);
+                if (log.isDebugEnabled()) {
+                    log.debug("script:" + new Script(script).toString());
+                    log.debug("script hex:" + Hex.toHexString(script));
+                    log.debug("address from script:" + getBipFormatSupplier().getToAddress(script, params));
+                }
+                if(getBipFormatSupplier().getToAddress(script, params).equalsIgnoreCase(stonewall1.getCollabChange())) {
+                    idx = i;
+                    break;
+                }
             }
-            transaction.getOutputs().get(0).setValue(_value);
-            stonewall1.getPSBT().setTransaction(transaction);
+
+            if(idx == 0 || idx == 1) {
+                Coin value = transaction.getOutputs().get(idx).getValue();
+                Coin _value = Coin.valueOf(value.longValue() - (fee / 2L));
+                if (log.isDebugEnabled()) {
+                    log.debug("output value post fee:" + _value);
+                }
+                transaction.getOutputs().get(idx).setValue(_value);
+                stonewall1.getPSBT().setTransaction(transaction);
+            }
+            else {
+                throw new Exception("Cannot compose #Cahoots: invalid tx outputs");
+            }
+
         }
         else {
             log.error("outputs: "+transaction.getOutputs().size());
