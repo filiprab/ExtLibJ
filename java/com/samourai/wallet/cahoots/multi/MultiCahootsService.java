@@ -35,20 +35,20 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             throw new Exception("Invalid amount");
         }
         byte[] fingerprint = cahootsWallet.getBip84Wallet().getFingerprint();
-        MultiCahoots stowaway0 = doMultiCahoots0_Stowaway0(address, amount, account, fingerprint);
+        MultiCahoots multiCahoots0 = doMultiCahoots0_Stowaway0(address, amount, account, fingerprint);
         if (log.isDebugEnabled()) {
-            log.debug("# Stowaway INITIATOR => step="+stowaway0.getStep());
+            log.debug("# Stowaway INITIATOR => step="+multiCahoots0.getStep());
         }
-        return stowaway0;
+        return multiCahoots0;
     }
 
     @Override
-    public MultiCahoots startCollaborator(CahootsWallet cahootsWallet, int account, MultiCahoots stowaway0) throws Exception {
-        MultiCahoots stowaway1 = doMultiCahoots1_Stowaway1(stowaway0, cahootsWallet, account);
+    public MultiCahoots startCollaborator(CahootsWallet cahootsWallet, int account, MultiCahoots multiCahoots0) throws Exception {
+        MultiCahoots multiCahoots1 = doMultiCahoots1_Stowaway1(multiCahoots0, cahootsWallet, account);
         if (log.isDebugEnabled()) {
-            log.debug("# Stowaway COUNTERPARTY => step="+stowaway1.getStep());
+            log.debug("# Stowaway COUNTERPARTY => step="+multiCahoots1.getStep());
         }
-        return stowaway1;
+        return multiCahoots1;
     }
 
     @Override
@@ -70,7 +70,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             case 3:
                 // sender
                 payload = doMultiCahoots4_Stowaway4(multiCahoots, cahootsWallet);
-                payload = doMultiCahoots4_Stonewallx20_StartInitiator(payload, cahootsWallet);
+                payload = doMultiCahoots4_Stonewallx20_StartInitiator(payload);
                 break;
             case 4:
                 // counterparty
@@ -112,17 +112,17 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         if (log.isDebugEnabled()) {
             log.debug("sender account (0):" + account);
         }
-        MultiCahoots stowaway0 = new MultiCahoots(address, spendAmount, params, account);
-        stowaway0 = stowaway0.doStep0_Stowaway_StartInitiator(address, spendAmount, account, fingerprint);
-        return stowaway0;
+        MultiCahoots multiCahoots0 = new MultiCahoots(address, spendAmount, params, account);
+        multiCahoots0 = multiCahoots0.doStep0_Stowaway_StartInitiator(address, spendAmount, account, fingerprint);
+        return multiCahoots0;
     }
 
     //
     // counterparty
     //
-    private MultiCahoots doMultiCahoots1_Stowaway1(MultiCahoots stowaway0, CahootsWallet cahootsWallet, int account) throws Exception {
+    private MultiCahoots doMultiCahoots1_Stowaway1(MultiCahoots multiCahoots0, CahootsWallet cahootsWallet, int account) throws Exception {
         byte[] fingerprint = cahootsWallet.getBip84Wallet().getFingerprint();
-        stowaway0.setFingerprintCollab(fingerprint);
+        multiCahoots0.setFingerprintCollab(fingerprint);
 
         List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(account);
         // No need to filter out UTXOs that have been used in a previous part of the Cahoots, as this is the first time we select UTXOs.
@@ -136,7 +136,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         long totalContributedAmount = 0L;
         List<CahootsUtxo> highUTXO = new ArrayList<CahootsUtxo>();
         for (CahootsUtxo utxo : utxos) {
-            if (utxo.getValue() > stowaway0.getSpendAmount() + SamouraiWalletConst.bDust.longValue()) {
+            if (utxo.getValue() > multiCahoots0.getSpendAmount() + SamouraiWalletConst.bDust.longValue()) {
                 highUTXO.add(utxo);
             }
         }
@@ -156,20 +156,18 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                 if (log.isDebugEnabled()) {
                     log.debug("BIP84 selected utxo:" + utxo.getValue());
                 }
-                if (stowaway0.isContributedAmountSufficient(totalContributedAmount)) {
+                if (multiCahoots0.isContributedAmountSufficient(totalContributedAmount)) {
                     break;
                 }
             }
         }
 
         if (log.isDebugEnabled()) {
-            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalContributedAmount+", requiredAmount="+stowaway0.computeRequiredAmount());
+            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalContributedAmount+", requiredAmount="+multiCahoots0.computeRequiredAmount());
         }
-        if (!stowaway0.isContributedAmountSufficient(totalContributedAmount)) {
+        if (!multiCahoots0.isContributedAmountSufficient(totalContributedAmount)) {
             throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
         }
-
-        NetworkParameters params = stowaway0.getParams();
 
         //
         //
@@ -183,7 +181,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             MyTransactionOutPoint _outpoint = utxo.getOutpoint();
             ECKey eckey = utxo.getKey();
             String path = utxo.getPath();
-            inputsA.put(_outpoint, Triple.of(eckey.getPubKey(), stowaway0.getFingerprintCollab(), path));
+            inputsA.put(_outpoint, Triple.of(eckey.getPubKey(), multiCahoots0.getFingerprintCollab(), path));
         }
 
         // destination output
@@ -192,34 +190,34 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             log.debug("+output (CounterParty receive) = "+receiveAddress);
         }
         HashMap<_TransactionOutput, Triple<byte[], byte[], String>> outputsA = new HashMap<_TransactionOutput, Triple<byte[], byte[], String>>();
-        _TransactionOutput output_A0 = computeTxOutput(receiveAddress, stowaway0.getSpendAmount());
-        outputsA.put(output_A0, computeOutput(receiveAddress, stowaway0.getFingerprintCollab()));
+        _TransactionOutput output_A0 = computeTxOutput(receiveAddress, multiCahoots0.getSpendAmount());
+        outputsA.put(output_A0, computeOutput(receiveAddress, multiCahoots0.getFingerprintCollab()));
 
-        stowaway0.setDestination(receiveAddress.getAddressString());
-        stowaway0.setCounterpartyAccount(account);
+        multiCahoots0.setDestination(receiveAddress.getAddressString());
+        multiCahoots0.setCounterpartyAccount(account);
 
-        MultiCahoots stowaway1 = new MultiCahoots(stowaway0);
-        stowaway1.doStep1_Stowaway_StartCollaborator(inputsA, outputsA);
+        MultiCahoots multiCahoots1 = new MultiCahoots(multiCahoots0);
+        multiCahoots1.doStep1_Stowaway_StartCollaborator(inputsA, outputsA);
 
-        return stowaway1;
+        return multiCahoots1;
     }
 
     //
     // sender
     //
-    private MultiCahoots doMultiCahoots2_Stowaway2(MultiCahoots stowaway1, CahootsWallet cahootsWallet) throws Exception {
+    private MultiCahoots doMultiCahoots2_Stowaway2(MultiCahoots multiCahoots1, CahootsWallet cahootsWallet) throws Exception {
 
         if (log.isDebugEnabled()) {
-            log.debug("sender account (2):" + stowaway1.getAccount());
+            log.debug("sender account (2):" + multiCahoots1.getAccount());
         }
 
-        Transaction transaction = stowaway1.getTransaction();
+        Transaction transaction = multiCahoots1.getTransaction();
         if (log.isDebugEnabled()) {
             log.debug("step2 tx:" + Hex.toHexString(transaction.bitcoinSerialize()));
         }
         int nbIncomingInputs = transaction.getInputs().size();
 
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stowaway1.getAccount());
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(multiCahoots1.getAccount());
         // This is the first time we fetch UTXOs on initiator side. No need to filter yet.
         // sort in ascending order by value
         utxos.sort(new UTXO.UTXOComparator());
@@ -234,7 +232,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         long totalSelectedAmount = 0L;
         List<CahootsUtxo> lowUTXO = new ArrayList<CahootsUtxo>();
         for (CahootsUtxo utxo : utxos) {
-            if(utxo.getValue() < stowaway1.getSpendAmount())    {
+            if(utxo.getValue() < multiCahoots1.getSpendAmount())    {
                 lowUTXO.add(utxo);
             }
         }
@@ -259,7 +257,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                     log.debug("BIP84 selected utxo:" + utxo.getValue());
                 }
                 nbTotalSelectedOutPoints ++;
-                if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STOWAWAY))) {
+                if (multiCahoots1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STOWAWAY))) {
 
                     // discard "extra" utxo, if any
                     List<CahootsUtxo> _selectedUTXO = new ArrayList<CahootsUtxo>();
@@ -273,7 +271,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                             log.debug("BIP84 post selected utxo:" + utxoSel.getValue());
                         }
                         _nbTotalSelectedOutPoints ++;
-                        if (stowaway1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STOWAWAY))) {
+                        if (multiCahoots1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STOWAWAY))) {
                             selectedUTXO.clear();
                             selectedUTXO.addAll(_selectedUTXO);
                             totalSelectedAmount = _totalSelectedAmount;
@@ -285,16 +283,16 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                     break;
                 }
             }
-            if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STOWAWAY))) {
+            if (multiCahoots1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STOWAWAY))) {
                 break;
             }
         }
 
         long estimatedFee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STOWAWAY);
         if (log.isDebugEnabled()) {
-            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+stowaway1.computeRequiredAmount(estimatedFee));
+            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+multiCahoots1.computeRequiredAmount(estimatedFee));
         }
-        if (!stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee)) {
+        if (!multiCahoots1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee)) {
             throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
         }
 
@@ -303,7 +301,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             log.debug("fee:" + fee);
         }
 
-        NetworkParameters params = stowaway1.getParams();
+        NetworkParameters params = multiCahoots1.getParams();
 
         //
         //
@@ -317,7 +315,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             MyTransactionOutPoint _outpoint = utxo.getOutpoint();
             ECKey eckey = utxo.getKey();
             String path = utxo.getPath();
-            inputsB.put(_outpoint, Triple.of(eckey.getPubKey(), stowaway1.getFingerprint(), path));
+            inputsB.put(_outpoint, Triple.of(eckey.getPubKey(), multiCahoots1.getFingerprint(), path));
         }
 
         if (log.isDebugEnabled()) {
@@ -325,96 +323,96 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         }
 
         // change output
-        BipAddress changeAddress = cahootsWallet.fetchAddressChange(stowaway1.getAccount(), true);
+        BipAddress changeAddress = cahootsWallet.fetchAddressChange(multiCahoots1.getAccount(), true);
         if (log.isDebugEnabled()) {
             log.debug("+output (sender change) = "+changeAddress);
         }
         HashMap<_TransactionOutput, Triple<byte[], byte[], String>> outputsB = new HashMap<_TransactionOutput, Triple<byte[], byte[], String>>();
-        _TransactionOutput output_B0 = computeTxOutput(changeAddress, (totalSelectedAmount - stowaway1.getSpendAmount()) - fee);
-        outputsB.put(output_B0, computeOutput(changeAddress, stowaway1.getFingerprint()));
+        _TransactionOutput output_B0 = computeTxOutput(changeAddress, (totalSelectedAmount - multiCahoots1.getSpendAmount()) - fee);
+        outputsB.put(output_B0, computeOutput(changeAddress, multiCahoots1.getFingerprint()));
 
         if (log.isDebugEnabled()) {
             log.debug("outputsB:" + outputsB.size());
         }
 
-        MultiCahoots stowaway2 = new MultiCahoots(stowaway1);
-        stowaway2.doStep2_Stowaway(inputsB, outputsB);
-        stowaway2.setFeeAmount(fee);
+        MultiCahoots multiCahoots2 = new MultiCahoots(multiCahoots1);
+        multiCahoots2.doStep2_Stowaway(inputsB, outputsB);
+        multiCahoots2.setFeeAmount(fee);
 
-        return stowaway2;
+        return multiCahoots2;
     }
 
     //
     // counterparty
     //
-    private MultiCahoots doMultiCahoots3_Stowaway3(MultiCahoots stowaway2, CahootsWallet cahootsWallet) throws Exception {
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stowaway2.getCounterpartyAccount());
-        HashMap<String, ECKey> keyBag_A = computeKeyBag(stowaway2, utxos);
+    private MultiCahoots doMultiCahoots3_Stowaway3(MultiCahoots multiCahoots2, CahootsWallet cahootsWallet) throws Exception {
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(multiCahoots2.getCounterpartyAccount());
+        HashMap<String, ECKey> keyBag_A = computeKeyBag(multiCahoots2, utxos);
 
-        MultiCahoots stowaway3 = new MultiCahoots(stowaway2);
-        stowaway3.doStep3_Stowaway(keyBag_A);
+        MultiCahoots multiCahoots3 = new MultiCahoots(multiCahoots2);
+        multiCahoots3.doStep3_Stowaway(keyBag_A);
 
         // compute verifiedSpendAmount
-        long verifiedSpendAmount = computeSpendAmount(keyBag_A, cahootsWallet, stowaway3, CahootsTypeUser.COUNTERPARTY);
-        stowaway3.setVerifiedSpendAmount(verifiedSpendAmount);
-        return stowaway3;
+        long verifiedSpendAmount = computeSpendAmount(keyBag_A, cahootsWallet, multiCahoots3, CahootsTypeUser.COUNTERPARTY);
+        multiCahoots3.setVerifiedSpendAmount(verifiedSpendAmount);
+        return multiCahoots3;
     }
 
     //
     // sender
     //
-    private MultiCahoots doMultiCahoots4_Stowaway4(MultiCahoots stowaway3, CahootsWallet cahootsWallet) throws Exception {
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stowaway3.getAccount());
-        HashMap<String, ECKey> keyBag_B = computeKeyBag(stowaway3, utxos);
+    private MultiCahoots doMultiCahoots4_Stowaway4(MultiCahoots multiCahoots3, CahootsWallet cahootsWallet) throws Exception {
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(multiCahoots3.getAccount());
+        HashMap<String, ECKey> keyBag_B = computeKeyBag(multiCahoots3, utxos);
 
-        MultiCahoots stowaway4 = new MultiCahoots(stowaway3);
-        stowaway4.doStep4_Stowaway(keyBag_B);
+        MultiCahoots multiCahoots4 = new MultiCahoots(multiCahoots3);
+        multiCahoots4.doStep4_Stowaway(keyBag_B);
 
         // compute verifiedSpendAmount
-        long verifiedSpendAmount = computeSpendAmount(keyBag_B, cahootsWallet, stowaway4, CahootsTypeUser.SENDER);
-        stowaway4.setVerifiedSpendAmount(verifiedSpendAmount);
-        return stowaway4;
+        long verifiedSpendAmount = computeSpendAmount(keyBag_B, cahootsWallet, multiCahoots4, CahootsTypeUser.SENDER);
+        multiCahoots4.setVerifiedSpendAmount(verifiedSpendAmount);
+        return multiCahoots4;
     }
 
     //
     // sender
     //
-    public MultiCahoots doMultiCahoots4_Stonewallx20_StartInitiator(MultiCahoots multiCahoots, CahootsWallet cahootsWallet) throws Exception {
-        if (multiCahoots.getStonewallAmount() <= 0) {
+    public MultiCahoots doMultiCahoots4_Stonewallx20_StartInitiator(MultiCahoots multiCahoots4) throws Exception {
+        if (multiCahoots4.getStonewallAmount() <= 0) {
             throw new Exception("Invalid amount");
         }
-        if (StringUtils.isEmpty(multiCahoots.getStonewallDestination())) {
+        if (StringUtils.isEmpty(multiCahoots4.getStonewallDestination())) {
             throw new Exception("Invalid address");
         }
 
-        MultiCahoots stonewall0 = new MultiCahoots(multiCahoots.getStonewallDestination(), multiCahoots.getStonewallAmount(), multiCahoots.getParams(), multiCahoots.getAccount());
-        stonewall0.setStep(4);
+        MultiCahoots multiCahoots4_0 = new MultiCahoots(multiCahoots4.getStonewallDestination(), multiCahoots4.getStonewallAmount(), multiCahoots4.getParams(), multiCahoots4.getAccount());
+        multiCahoots4_0.setStep(4);
         // Testing this out, might need to "fake" the initiation so the fingerprints don't change from prior step.
-        stonewall0.setFingerprint(multiCahoots.getFingerprint());
-        stonewall0.setFingerprintCollab(multiCahoots.getFingerprintCollab());
-        stonewall0.setCounterpartyAccount(multiCahoots.getCounterpartyAccount());
-        stonewall0.setDestination(multiCahoots.getStonewallDestination());
+        multiCahoots4_0.setFingerprint(multiCahoots4.getFingerprint());
+        multiCahoots4_0.setFingerprintCollab(multiCahoots4.getFingerprintCollab());
+        multiCahoots4_0.setCounterpartyAccount(multiCahoots4.getCounterpartyAccount());
+        multiCahoots4_0.setDestination(multiCahoots4.getStonewallDestination());
 
-        stonewall0.setStowawayTransaction(multiCahoots.getStowawayTransaction());
+        multiCahoots4_0.setStowawayTransaction(multiCahoots4.getStowawayTransaction());
         if (log.isDebugEnabled()) {
-            log.debug("# STONEWALLx2 INITIATOR => step="+stonewall0.getStep());
+            log.debug("# STONEWALLx2 INITIATOR => step="+multiCahoots4_0.getStep());
         }
-        return stonewall0;
+        return multiCahoots4_0;
     }
 
     //
     // counterparty
     //
-    private MultiCahoots doMultiCahoots5_Stonewallx21_StartCollaborator(MultiCahoots stonewall0, CahootsWallet cahootsWallet, int account) throws Exception {
+    private MultiCahoots doMultiCahoots5_Stonewallx21_StartCollaborator(MultiCahoots multiCahoots4, CahootsWallet cahootsWallet, int account) throws Exception {
 
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stonewall0.getCounterpartyAccount());
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(multiCahoots4.getCounterpartyAccount());
 
         if (log.isDebugEnabled()) {
             log.debug("BIP84 utxos:" + utxos.size());
         }
 
         List<String> seenTxs = new ArrayList<String>();
-        for(TransactionInput input : stonewall0.getStowawayTransaction().getInputs()) {
+        for(TransactionInput input : multiCahoots4.getStowawayTransaction().getInputs()) {
             seenTxs.add(input.getOutpoint().getHash().toString());
         }
 
@@ -422,7 +420,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         long totalContributedAmount = 0L;
         for (int step = 0; step < 3; step++) {
 
-            if (stonewall0.getCounterpartyAccount() == 0) {
+            if (multiCahoots4.getCounterpartyAccount() == 0) {
                 step = 2;
             }
 
@@ -456,23 +454,21 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                     }
                 }
 
-                if (stonewall0.isContributedAmountSufficient(totalContributedAmount)) {
+                if (multiCahoots4.isContributedAmountSufficient(totalContributedAmount)) {
                     break;
                 }
             }
-            if (stonewall0.isContributedAmountSufficient(totalContributedAmount)) {
+            if (multiCahoots4.isContributedAmountSufficient(totalContributedAmount)) {
                 break;
             }
         }
 
         if (log.isDebugEnabled()) {
-            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalContributedAmount+", requiredAmount="+stonewall0.computeRequiredAmount());
+            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalContributedAmount+", requiredAmount="+multiCahoots4.computeRequiredAmount());
         }
-        if (!stonewall0.isContributedAmountSufficient(totalContributedAmount)) {
+        if (!multiCahoots4.isContributedAmountSufficient(totalContributedAmount)) {
             throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
         }
-
-        NetworkParameters params = stonewall0.getParams();
 
         //
         //
@@ -486,45 +482,45 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             MyTransactionOutPoint _outpoint = utxo.getOutpoint();
             ECKey eckey = utxo.getKey();
             String path = utxo.getPath();
-            inputsA.put(_outpoint, Triple.of(eckey.getPubKey(), stonewall0.getFingerprintCollab(), path));
+            inputsA.put(_outpoint, Triple.of(eckey.getPubKey(), multiCahoots4.getFingerprintCollab(), path));
         }
 
         HashMap<_TransactionOutput, Triple<byte[], byte[], String>> outputsA = new HashMap<_TransactionOutput, Triple<byte[], byte[], String>>();
         // contributor mix output
-        BipAddress receiveAddress = cahootsWallet.fetchAddressReceive(stonewall0.getCounterpartyAccount(), true);
+        BipAddress receiveAddress = cahootsWallet.fetchAddressReceive(multiCahoots4.getCounterpartyAccount(), true);
         if (log.isDebugEnabled()) {
             log.debug("+output (CounterParty mix) = "+receiveAddress);
         }
-        _TransactionOutput output_A0 = computeTxOutput(receiveAddress, stonewall0.getSpendAmount());
-        outputsA.put(output_A0, computeOutput(receiveAddress, stonewall0.getFingerprintCollab()));
+        _TransactionOutput output_A0 = computeTxOutput(receiveAddress, multiCahoots4.getSpendAmount());
+        outputsA.put(output_A0, computeOutput(receiveAddress, multiCahoots4.getFingerprintCollab()));
         // sender change output
-        BipAddress changeAddress = cahootsWallet.fetchAddressChange(stonewall0.getCounterpartyAccount(), true);
+        BipAddress changeAddress = cahootsWallet.fetchAddressChange(multiCahoots4.getCounterpartyAccount(), true);
         if (log.isDebugEnabled()) {
             log.debug("+output (CounterParty change) = " + changeAddress);
         }
-        _TransactionOutput output_A1 = computeTxOutput(changeAddress, totalContributedAmount - stonewall0.getSpendAmount());
-        outputsA.put(output_A1, computeOutput(changeAddress, stonewall0.getFingerprintCollab()));
-        stonewall0.setCollabChange(changeAddress.getAddressString());
+        _TransactionOutput output_A1 = computeTxOutput(changeAddress, totalContributedAmount - multiCahoots4.getSpendAmount());
+        outputsA.put(output_A1, computeOutput(changeAddress, multiCahoots4.getFingerprintCollab()));
+        multiCahoots4.setCollabChange(changeAddress.getAddressString());
 
-        MultiCahoots stonewall1 = new MultiCahoots(stonewall0);
-        stonewall1.doStep5_Stonewallx2_StartCollaborator(inputsA, outputsA);
+        MultiCahoots multiCahoots5 = new MultiCahoots(multiCahoots4);
+        multiCahoots5.doStep5_Stonewallx2_StartCollaborator(inputsA, outputsA);
 
-        return stonewall1;
+        return multiCahoots5;
     }
 
     //
-    // sender - new
+    // sender
     //
-    private MultiCahoots doMultiCahoots6_Stonewallx22(MultiCahoots stonewall1, CahootsWallet cahootsWallet) throws Exception {
+    private MultiCahoots doMultiCahoots6_Stonewallx22(MultiCahoots multiCahoots5, CahootsWallet cahootsWallet) throws Exception {
 
-        Transaction transaction = stonewall1.getTransaction();
+        Transaction transaction = multiCahoots5.getTransaction();
         if (log.isDebugEnabled()) {
             log.debug("step2 tx:" + Hex.toHexString(transaction.bitcoinSerialize()));
             log.debug("step2 tx:" + transaction);
         }
         int nbIncomingInputs = transaction.getInputs().size();
 
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stonewall1.getAccount());
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(multiCahoots5.getAccount());
 
         if (log.isDebugEnabled()) {
             log.debug("BIP84 utxos:" + utxos.size());
@@ -537,7 +533,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             }
         }
 
-        for(TransactionInput input : stonewall1.getStowawayTransaction().getInputs()) {
+        for(TransactionInput input : multiCahoots5.getStowawayTransaction().getInputs()) {
             seenTxs.add(input.getOutpoint().getHash().toString());
         }
 
@@ -549,7 +545,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         int OUTPUTS_STONEWALL = 4;
         for (int step = 0; step < 3; step++) {
 
-            if (stonewall1.getCounterpartyAccount() == 0) {
+            if (multiCahoots5.getCounterpartyAccount() == 0) {
                 step = 2;
             }
 
@@ -585,19 +581,19 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                     }
                 }
 
-                if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STONEWALL))) {
+                if (multiCahoots5.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STONEWALL))) {
                     break;
                 }
             }
-            if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STONEWALL))) {
+            if (multiCahoots5.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STONEWALL))) {
                 break;
             }
         }
         long estimatedFee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB, OUTPUTS_STONEWALL);
         if (log.isDebugEnabled()) {
-            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+stonewall1.computeRequiredAmount(estimatedFee));
+            log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+multiCahoots5.computeRequiredAmount(estimatedFee));
         }
-        if (!stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee)) {
+        if (!multiCahoots5.isContributedAmountSufficient(totalSelectedAmount, estimatedFee)) {
             throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
         }
 
@@ -611,10 +607,10 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         if (log.isDebugEnabled()) {
             log.debug("fee pair:" + fee);
         }
-        stonewall1.setFeeAmount(fee);
+        multiCahoots5.setFeeAmount(fee);
 
         if (log.isDebugEnabled()) {
-            log.debug("destination:" + stonewall1.getDestination());
+            log.debug("destination:" + multiCahoots5.getDestination());
         }
 
         if (transaction.getOutputs() != null && transaction.getOutputs().size() == 2) {
@@ -630,7 +626,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                     log.debug("script hex:" + Hex.toHexString(script));
                     log.debug("address from script:" + getBipFormatSupplier().getToAddress(script, params));
                 }
-                if(getBipFormatSupplier().getToAddress(script, params).equalsIgnoreCase(stonewall1.getCollabChange())) {
+                if(getBipFormatSupplier().getToAddress(script, params).equalsIgnoreCase(multiCahoots5.getCollabChange())) {
                     idx = i;
                     break;
                 }
@@ -643,7 +639,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                     log.debug("output value post fee:" + _value);
                 }
                 transaction.getOutputs().get(idx).setValue(_value);
-                stonewall1.getPSBT().setTransaction(transaction);
+                multiCahoots5.getPSBT().setTransaction(transaction);
             }
             else {
                 throw new Exception("Cannot compose #Cahoots: invalid tx outputs");
@@ -656,15 +652,13 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             throw new Exception("Cannot compose #Cahoots: invalid tx outputs count");
         }
 
-        NetworkParameters params = stonewall1.getParams();
-
         //
         //
         // step2: B verif, utxos -> A (take smallest that cover amount)
         //
         //
 
-        String zpub = cahootsWallet.getBip84Wallet().getAccount(stonewall1.getAccount()).zpubstr();
+        String zpub = cahootsWallet.getBip84Wallet().getAccount(multiCahoots5.getAccount()).zpubstr();
         HashMap<MyTransactionOutPoint, Triple<byte[], byte[], String>> inputsB = new HashMap<MyTransactionOutPoint, Triple<byte[], byte[], String>>();
 
         for (CahootsUtxo utxo : selectedUTXO) {
@@ -677,43 +671,43 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
         // spender change output
         HashMap<_TransactionOutput, Triple<byte[], byte[], String>> outputsB = new HashMap<_TransactionOutput, Triple<byte[], byte[], String>>();
 
-        BipAddress changeAddress = cahootsWallet.fetchAddressChange(stonewall1.getAccount(), true);
+        BipAddress changeAddress = cahootsWallet.fetchAddressChange(multiCahoots5.getAccount(), true);
         if (log.isDebugEnabled()) {
             log.debug("+output (Spender change) = " + changeAddress);
         }
 
-        long amount = (totalSelectedAmount - stonewall1.getSpendAmount()) - (fee / 2L);
+        long amount = (totalSelectedAmount - multiCahoots5.getSpendAmount()) - (fee / 2L);
         _TransactionOutput output_B0 = computeTxOutput(changeAddress, amount);
-        outputsB.put(output_B0, computeOutput(changeAddress, stonewall1.getFingerprint()));
+        outputsB.put(output_B0, computeOutput(changeAddress, multiCahoots5.getFingerprint()));
 
-        MultiCahoots stonewall2 = new MultiCahoots(stonewall1);
-        stonewall2.doStep6_Stonewallx2(inputsB, outputsB);
+        MultiCahoots multiCahoots6 = new MultiCahoots(multiCahoots5);
+        multiCahoots6.doStep6_Stonewallx2(inputsB, outputsB);
 
-        return stonewall2;
+        return multiCahoots6;
     }
 
     //
-    // counterparty - new
+    // counterparty
     //
-    private MultiCahoots doMultiCahoots7_Stonewallx23(MultiCahoots stonewall2, CahootsWallet cahootsWallet) throws Exception {
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stonewall2.getCounterpartyAccount());
-        HashMap<String, ECKey> keyBag_A = computeKeyBag(stonewall2, utxos);
+    private MultiCahoots doMultiCahoots7_Stonewallx23(MultiCahoots multiCahoots6, CahootsWallet cahootsWallet) throws Exception {
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(multiCahoots6.getCounterpartyAccount());
+        HashMap<String, ECKey> keyBag_A = computeKeyBag(multiCahoots6, utxos);
 
-        MultiCahoots stonewall3 = new MultiCahoots(stonewall2);
-        boolean noFeeTaken = checkForNoFee(stonewall3, utxos);
-        if(noFeeTaken) {
-            stonewall3.doStep7_Stonewallx2(keyBag_A);
+        MultiCahoots multiCahoots7 = new MultiCahoots(multiCahoots6);
+        boolean noExtraFee = checkForNoExtraFee(multiCahoots7, utxos);
+        if(noExtraFee) {
+            multiCahoots7.doStep7_Stonewallx2(keyBag_A);
         } else {
-            throw new Exception("Cannot compose #Cahoots: fee is being taken from us");
+            throw new Exception("Cannot compose #Cahoots: extra fee is being taken from us");
         }
 
         // compute verifiedSpendAmount
-        long verifiedSpendAmount = computeSpendAmount(keyBag_A, cahootsWallet, stonewall3, CahootsTypeUser.COUNTERPARTY);
-        stonewall3.setVerifiedSpendAmount(verifiedSpendAmount);
-        return stonewall3;
+        long verifiedSpendAmount = computeSpendAmount(keyBag_A, cahootsWallet, multiCahoots7, CahootsTypeUser.COUNTERPARTY);
+        multiCahoots7.setVerifiedSpendAmount(verifiedSpendAmount);
+        return multiCahoots7;
     }
 
-    private boolean checkForNoFee(MultiCahoots multiCahoots, List<CahootsUtxo> utxos) {
+    private boolean checkForNoExtraFee(MultiCahoots multiCahoots, List<CahootsUtxo> utxos) {
         long inputSum = 0;
         long outputSum = 0;
 
@@ -749,19 +743,19 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
     }
 
     //
-    // sender - new
+    // sender
     //
-    private MultiCahoots doMultiCahoots8_Stonewallx24(MultiCahoots stonewall3, CahootsWallet cahootsWallet) throws Exception {
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stonewall3.getAccount());
-        HashMap<String, ECKey> keyBag_B = computeKeyBag(stonewall3, utxos);
+    private MultiCahoots doMultiCahoots8_Stonewallx24(MultiCahoots multiCahoots7, CahootsWallet cahootsWallet) throws Exception {
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(multiCahoots7.getAccount());
+        HashMap<String, ECKey> keyBag_B = computeKeyBag(multiCahoots7, utxos);
 
-        MultiCahoots stonewall4 = new MultiCahoots(stonewall3);
-        stonewall4.doStep8_Stonewallx2(keyBag_B);
+        MultiCahoots multiCahoots8 = new MultiCahoots(multiCahoots7);
+        multiCahoots8.doStep8_Stonewallx2(keyBag_B);
 
         // compute verifiedSpendAmount
-        long verifiedSpendAmount = computeSpendAmount(keyBag_B, cahootsWallet, stonewall4, CahootsTypeUser.SENDER);
-        stonewall4.setVerifiedSpendAmount(verifiedSpendAmount);
-        return stonewall4;
+        long verifiedSpendAmount = computeSpendAmount(keyBag_B, cahootsWallet, multiCahoots8, CahootsTypeUser.SENDER);
+        multiCahoots8.setVerifiedSpendAmount(verifiedSpendAmount);
+        return multiCahoots8;
     }
 
     private long estimatedFee(int nbTotalSelectedOutPoints, int nbIncomingInputs, long feePerB, int outputsNonOpReturn) {

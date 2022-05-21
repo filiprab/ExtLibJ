@@ -174,12 +174,7 @@ public class MultiCahoots extends Cahoots {
 
         // tx: modify spend output
         long contributedAmount = 0L;
-        /*
-        for(TransactionInput input : transaction.getInputs())   {
-//            Log.d("Stowaway", input.getOutpoint().toString());
-            contributedAmount += input.getOutpoint().getValue().longValue();
-        }
-        */
+
         for(String outpoint : outpoints.keySet())   {
             contributedAmount += outpoints.get(outpoint);
         }
