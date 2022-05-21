@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
+    private ArrayList<String> activeUtxos = new ArrayList<>();
     private static final Logger log = LoggerFactory.getLogger(MultiCahootsService.class);
 
     public MultiCahootsService(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
@@ -146,15 +147,24 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
             if (log.isDebugEnabled()) {
                 log.debug("BIP84 selected random utxo:" + utxo.getValue());
             }
-            selectedUTXO.add(utxo);
-            totalContributedAmount = utxo.getValue();
+
+            String outpoint = utxo.getOutpoint().toString();
+            if(!activeUtxos.contains(outpoint)) {
+                activeUtxos.add(outpoint);
+                selectedUTXO.add(utxo);
+                totalContributedAmount = utxo.getValue();
+            }
         }
         if (selectedUTXO.size() == 0) {
             for (CahootsUtxo utxo : utxos) {
-                selectedUTXO.add(utxo);
-                totalContributedAmount += utxo.getValue();
-                if (log.isDebugEnabled()) {
-                    log.debug("BIP84 selected utxo:" + utxo.getValue());
+                String outpoint = utxo.getOutpoint().toString();
+                if(!activeUtxos.contains(outpoint)) {
+                    activeUtxos.add(outpoint);
+                    selectedUTXO.add(utxo);
+                    totalContributedAmount += utxo.getValue();
+                    if (log.isDebugEnabled()) {
+                        log.debug("BIP84 selected utxo:" + utxo.getValue());
+                    }
                 }
                 if (multiCahoots0.isContributedAmountSufficient(totalContributedAmount)) {
                     break;
@@ -424,6 +434,9 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                 step = 2;
             }
 
+            for(CahootsUtxo utxo : selectedUTXO) {
+                activeUtxos.remove(utxo.getOutpoint().toString());
+            }
             selectedUTXO = new ArrayList<CahootsUtxo>();
             totalContributedAmount = 0L;
             for (CahootsUtxo utxo : utxos) {
@@ -446,11 +459,14 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots> {
                 MyTransactionOutPoint outpoint = utxo.getOutpoint();
                 if (!seenTxs.contains(outpoint.getHash().toString())) {
                     seenTxs.add(outpoint.getHash().toString());
-
-                    selectedUTXO.add(utxo);
-                    totalContributedAmount += utxo.getValue();
-                    if (log.isDebugEnabled()) {
-                        log.debug("BIP84 selected utxo:" + utxo.getValue());
+                    String outpointString = outpoint.toString();
+                    if(!activeUtxos.contains(outpointString)) {
+                        activeUtxos.add(outpointString);
+                        selectedUTXO.add(utxo);
+                        totalContributedAmount += utxo.getValue();
+                        if (log.isDebugEnabled()) {
+                            log.debug("BIP84 selected utxo:" + utxo.getValue());
+                        }
                     }
                 }
 
