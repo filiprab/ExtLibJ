@@ -1,10 +1,10 @@
 package com.samourai.wallet.api.factory;
 
-import com.samourai.wallet.BuildConfig;
-import com.samourai.wallet.SamouraiWallet;
+//import com.samourai.wallet.BuildConfig;
+//import com.samourai.wallet.SamouraiWallet;
 import com.samourai.wallet.api.backend.beans.HttpException;
-import com.samourai.wallet.network.dojo.DojoUtil;
-import com.samourai.wallet.tor.TorManager;
+//import com.samourai.wallet.network.dojo.DojoUtil;
+//import com.samourai.wallet.tor.TorManager;
 import okhttp3.*;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.io.IOUtils;
@@ -16,6 +16,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.DataOutputStream;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +64,8 @@ public class WebUtil {
 
     public String postURL(String request, String urlParameters, Map<String, String> headers) throws Exception {
 
-        if (context == null) {
+        // TODO TorManager porting
+        /*if (context == null) {
             return postURL(null, request, urlParameters, headers);
         } else {
             Log.v("WebUtil", "Tor required status:" + TorManager.INSTANCE.isRequired());
@@ -79,7 +81,9 @@ public class WebUtil {
                 return postURL(null, request, urlParameters, headers);
             }
 
-        }
+        }*/
+
+        return postURL(null, request, urlParameters, headers);
 
     }
 
@@ -214,7 +218,7 @@ public class WebUtil {
             headers.put("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36");
         }
 
-        if (context == null) {
+        /*if (context == null) {
             return _getURL(URL, headers);
         } else {
             //if(TorUtil.getInstance(context).orbotIsRunning())    {
@@ -225,8 +229,9 @@ public class WebUtil {
                 return _getURL(URL, headers);
             }
 
-        }
+        }*/
 
+        return _getURL(URL, headers);
     }
 
     private String _getURL(String URL, Map<String,String> headers) throws Exception {
@@ -267,16 +272,17 @@ public class WebUtil {
         throw new HttpException("Invalid Response " + responseBody, responseBody); // required by Whirlpool
     }
 
-    private String tor_getURL(String URL, Map<String,String> headers) throws Exception {
+    private String tor_getURL(String URL, Map<String,String> headers, Proxy proxy) throws Exception {
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .proxy(TorManager.INSTANCE.getProxy())
+                .proxy(proxy)
                 .connectTimeout(90, TimeUnit.SECONDS)
                 .readTimeout(90, TimeUnit.SECONDS);
 
-        if (BuildConfig.DEBUG) {
+        // TODO add Debug
+        /*if (BuildConfig.DEBUG) {
             builder.addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
-        }
+        }*/
         if(URL.contains("onion")){
             getHostNameVerifier(builder);
         }
@@ -324,11 +330,12 @@ public class WebUtil {
         if(URL.contains("onion")){
             getHostNameVerifier(builder);
         }
-
+        // TODO re-add debug
+/*
         if (BuildConfig.DEBUG) {
             builder.addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
         }
-
+*/
         Request.Builder rb = new Request.Builder().url(URL);
 
         // set headers
@@ -384,9 +391,10 @@ public class WebUtil {
             getHostNameVerifier(builder);
         }
 
-        if (BuildConfig.DEBUG) {
+        // TODO re-add debug
+        /*if (BuildConfig.DEBUG) {
             builder.addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY));
-        }
+        }*/
 
         Request.Builder rb = new Request.Builder();
 
@@ -449,12 +457,14 @@ public class WebUtil {
 
     }
 
-    public static String getAPIUrl(Context context){
-        if(TorManager.INSTANCE.isRequired()){
-            return   SamouraiWallet.getInstance().isTestNet() ? SAMOURAI_API2_TESTNET_TOR : SAMOURAI_API2_TOR;
+    public static String getAPIUrl(boolean testnet){
+        boolean useTor = false;
+        //if(TorManager.INSTANCE.isRequired()){
+        if(useTor) {
+            return   testnet ? SAMOURAI_API2_TESTNET_TOR : SAMOURAI_API2_TOR;
 
         }else {
-            return   SamouraiWallet.getInstance().isTestNet() ? SAMOURAI_API2_TESTNET : SAMOURAI_API2;
+            return   testnet ? SAMOURAI_API2_TESTNET : SAMOURAI_API2;
         }
 
     }
