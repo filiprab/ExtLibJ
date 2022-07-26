@@ -15,15 +15,18 @@ import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.bitcoinj.core.*;
 import org.bitcoinj.params.TestNet3Params;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
 public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
     private static final Logger log = LoggerFactory.getLogger(Stonewallx2Service.class);
@@ -321,15 +324,15 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
                     }
                 }
 
-                if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+                if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, nbIncomingInputs, feePerB))) {
                     break;
                 }
             }
-            if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+            if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, nbIncomingInputs, feePerB))) {
                 break;
             }
         }
-        long estimatedFee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB);
+        long estimatedFee = estimatedFee(selectedUTXO, nbIncomingInputs, feePerB);
         if (log.isDebugEnabled()) {
             log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+stonewall1.computeRequiredAmount(estimatedFee));
         }
@@ -337,7 +340,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
             throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
         }
 
-        long fee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB);
+        long fee = estimatedFee(selectedUTXO, nbIncomingInputs, feePerB);
         if (log.isDebugEnabled()) {
             log.debug("fee:" + fee);
         }
@@ -413,6 +416,15 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
 
     private long estimatedFee(int nbTotalSelectedOutPoints, int nbIncomingInputs, long feePerB) {
         return FeeUtil.getInstance().estimatedFeeSegwit(0, 0, nbTotalSelectedOutPoints + nbIncomingInputs, 4, 0, feePerB);
+    }
+
+    private long estimatedFee(List<CahootsUtxo> utxos, int nbIncomingInputs, long feePerB) {
+        Vector<MyTransactionOutPoint> outpoints = new Vector<>();
+        for(CahootsUtxo utxo : utxos) {
+            outpoints.add(utxo.getOutpoint());
+        }
+        Triple<Integer, Integer, Integer> outpointCounts = FeeUtil.getInstance().getOutpointCount(outpoints, params);
+        return FeeUtil.getInstance().estimatedFeeSegwit(outpointCounts.getLeft() + nbIncomingInputs, outpointCounts.getMiddle(), outpointCounts.getRight(), 4, 0, feePerB);
     }
 
     @Override

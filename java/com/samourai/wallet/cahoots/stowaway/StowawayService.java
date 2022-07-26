@@ -9,17 +9,16 @@ import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.CahootsUtxo;
 import com.samourai.wallet.cahoots.CahootsWallet;
 import com.samourai.wallet.hd.BipAddress;
+import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.util.FeeUtil;
+import org.apache.commons.lang3.tuple.Triple;
 import org.bitcoinj.core.*;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class StowawayService extends AbstractCahoots2xService<Stowaway> {
     private static final Logger log = LoggerFactory.getLogger(StowawayService.class);
@@ -231,7 +230,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
                     log.debug("selected utxo: " + utxo);
                 }
                 nbTotalSelectedOutPoints ++;
-                if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+                if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, nbIncomingInputs, feePerB))) {
 
                     // discard "extra" utxo, if any
                     List<CahootsUtxo> _selectedUTXO = new ArrayList<CahootsUtxo>();
@@ -245,7 +244,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
                             log.debug("post selected utxo: " + utxoSel);
                         }
                         _nbTotalSelectedOutPoints ++;
-                        if (stowaway1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+                        if (stowaway1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_selectedUTXO, nbIncomingInputs, feePerB))) {
                             selectedUTXO.clear();
                             selectedUTXO.addAll(_selectedUTXO);
                             totalSelectedAmount = _totalSelectedAmount;
@@ -257,12 +256,12 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
                     break;
                 }
             }
-            if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+            if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, nbIncomingInputs, feePerB))) {
                 break;
             }
         }
 
-        long estimatedFee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB);
+        long estimatedFee = estimatedFee(selectedUTXO, nbIncomingInputs, feePerB);
         if (log.isDebugEnabled()) {
             log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+stowaway1.computeRequiredAmount(estimatedFee));
         }
@@ -270,7 +269,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
             throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
         }
 
-        long fee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB);
+        long fee = estimatedFee(selectedUTXO, nbIncomingInputs, feePerB);
         if (log.isDebugEnabled()) {
             log.debug("fee:" + fee);
         }
@@ -317,6 +316,15 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
 
     private long estimatedFee(int nbTotalSelectedOutPoints, int nbIncomingInputs, long feePerB) {
         return FeeUtil.getInstance().estimatedFeeSegwit(0, 0, nbTotalSelectedOutPoints + nbIncomingInputs, 2, 0, feePerB);
+    }
+
+    private long estimatedFee(List<CahootsUtxo> utxos, int nbIncomingInputs, long feePerB) {
+        Vector<MyTransactionOutPoint> outpoints = new Vector<>();
+        for(CahootsUtxo utxo : utxos) {
+            outpoints.add(utxo.getOutpoint());
+        }
+        Triple<Integer, Integer, Integer> outpointCounts = FeeUtil.getInstance().getOutpointCount(outpoints, params);
+        return FeeUtil.getInstance().estimatedFeeSegwit(outpointCounts.getLeft() + nbIncomingInputs, outpointCounts.getMiddle(), outpointCounts.getRight(), 4, 0, feePerB);
     }
 
     @Override
