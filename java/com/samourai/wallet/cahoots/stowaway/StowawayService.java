@@ -104,11 +104,11 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
         stowaway0.setFingerprintCollab(fingerprint);
 
         int account = cahootsContext.getAccount();
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(account);
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosByAccount(account);
         // sort in descending order by value
         Collections.sort(utxos, new UTXO.UTXOComparator());
         if (log.isDebugEnabled()) {
-            log.debug("BIP84 utxos:" + utxos.size());
+            log.debug("utxos:" + utxos.size());
         }
 
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
@@ -122,7 +122,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
         if(highUTXO.size() > 0)    {
             CahootsUtxo utxo = highUTXO.get(getRandNextInt(highUTXO.size()));
             if (log.isDebugEnabled()) {
-                log.debug("BIP84 selected random utxo: " + utxo);
+                log.debug("selected random utxo: " + utxo);
             }
             selectedUTXO.add(utxo);
             totalContributedAmount = utxo.getValue();
@@ -132,7 +132,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
                 selectedUTXO.add(utxo);
                 totalContributedAmount += utxo.getValue();
                 if (log.isDebugEnabled()) {
-                    log.debug("BIP84 selected utxo: " + utxo);
+                    log.debug("selected utxo: " + utxo);
                 }
                 if (stowaway0.isContributedAmountSufficient(totalContributedAmount)) {
                     break;
@@ -193,13 +193,13 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
         }
         int nbIncomingInputs = transaction.getInputs().size();
 
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stowaway1.getAccount());
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosByAccount(stowaway1.getAccount());
         // sort in ascending order by value
         Collections.sort(utxos, new UTXO.UTXOComparator());
         Collections.reverse(utxos);
 
         if (log.isDebugEnabled()) {
-            log.debug("BIP84 utxos:" + utxos.size());
+            log.debug("utxos:" + utxos.size());
         }
 
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
@@ -228,7 +228,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
                 selectedUTXO.add(utxo);
                 totalSelectedAmount += utxo.getValue();
                 if (log.isDebugEnabled()) {
-                    log.debug("BIP84 selected utxo: " + utxo);
+                    log.debug("selected utxo: " + utxo);
                 }
                 nbTotalSelectedOutPoints ++;
                 if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
@@ -242,7 +242,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway> {
                         _selectedUTXO.add(utxoSel);
                         _totalSelectedAmount += utxoSel.getValue();
                         if (log.isDebugEnabled()) {
-                            log.debug("BIP84 post selected utxo: " + utxoSel);
+                            log.debug("post selected utxo: " + utxoSel);
                         }
                         _nbTotalSelectedOutPoints ++;
                         if (stowaway1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {

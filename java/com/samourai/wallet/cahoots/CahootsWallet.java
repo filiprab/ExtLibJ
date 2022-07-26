@@ -88,19 +88,7 @@ public abstract class CahootsWallet {
         return hdWallet.getFingerprint();
     }
 
-    public List<CahootsUtxo> getUtxosWpkhByAccount(int account) {
-        return filterUtxosWpkh(fetchUtxos(account));
-    }
-
-    protected static List<CahootsUtxo> filterUtxosWpkh(List<CahootsUtxo> utxos) {
-        List<CahootsUtxo> filteredUtxos = new LinkedList<CahootsUtxo>();
-        for(CahootsUtxo utxo : utxos)   {
-            // filter wpkh
-            String script = Hex.toHexString(utxo.getOutpoint().getScriptBytes());
-            if (bech32Util.isP2WPKHScript(script)) {
-                filteredUtxos.add(utxo);
-            }
-        }
-        return filteredUtxos;
+    public List<CahootsUtxo> getUtxosByAccount(int account) {
+        return fetchUtxos(account);
     }
 }

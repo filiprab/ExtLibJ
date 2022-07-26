@@ -113,12 +113,8 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
         byte[] fingerprint = cahootsWallet.getFingerprint();
         stonewall0.setFingerprintCollab(fingerprint);
 
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(account);
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosByAccount(account);
         shuffleUtxos(utxos);
-
-        if (log.isDebugEnabled()) {
-            log.debug("BIP84 utxos:" + utxos.size());
-        }
 
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
         long totalContributedAmount = 0L;
@@ -154,7 +150,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
                     selectedUTXO.add(utxo);
                     totalContributedAmount += utxo.getValue();
                     if (log.isDebugEnabled()) {
-                        log.debug("BIP84 selected utxo: " + utxo);
+                        log.debug("selected utxo: " + utxo);
                     }
                 }
 
@@ -211,7 +207,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
 
     public STONEWALLx2 doSTONEWALLx2_1_Multi(STONEWALLx2 stonewall0, CahootsWallet cahootsWallet, CahootsContext cahootsContext, List<String> seenTxs, XManagerClient xManagerClient) throws Exception {
         int account = cahootsContext.getAccount();
-        Coin balance = CahootsUtxo.sumValue(cahootsWallet.getUtxosWpkhByAccount(account));
+        Coin balance = CahootsUtxo.sumValue(cahootsWallet.getUtxosByAccount(account));
         boolean isBech32Destination = FormatsUtilGeneric.getInstance().isValidBech32(stonewall0.getDestination());
         if(balance.isGreaterThan(THRESHOLD) && isBech32Destination) {
             // mix to external
@@ -269,11 +265,11 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
         }
         int nbIncomingInputs = transaction.getInputs().size();
 
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stonewall1.getAccount());
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosByAccount(stonewall1.getAccount());
         shuffleUtxos(utxos);
 
         if (log.isDebugEnabled()) {
-            log.debug("BIP84 utxos:" + utxos.size());
+            log.debug("utxos:" + utxos.size());
         }
 
         for (TransactionInput input : transaction.getInputs()) {
@@ -321,7 +317,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2> {
                     totalSelectedAmount += utxo.getValue();
                     nbTotalSelectedOutPoints ++;
                     if (log.isDebugEnabled()) {
-                        log.debug("BIP84 selected utxo: " + utxo);
+                        log.debug("selected utxo: " + utxo);
                     }
                 }
 

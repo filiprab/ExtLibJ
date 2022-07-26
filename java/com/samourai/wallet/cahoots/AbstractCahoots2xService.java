@@ -86,7 +86,7 @@ public abstract class AbstractCahoots2xService<T extends Cahoots2x> extends Abst
     // receiver
     //
     public T doStep3(T cahoots2, CahootsWallet cahootsWallet, CahootsContext cahootsContext) throws Exception {
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(cahoots2.getCounterpartyAccount());
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosByAccount(cahoots2.getCounterpartyAccount());
         HashMap<String, ECKey> keyBag_A = computeKeyBag(cahoots2, utxos);
 
         T cahoots3 = (T)cahoots2.copy();
@@ -102,7 +102,7 @@ public abstract class AbstractCahoots2xService<T extends Cahoots2x> extends Abst
     // sender
     //
     public T doStep4(T cahoots3, CahootsWallet cahootsWallet, CahootsContext cahootsContext) throws Exception {
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(cahoots3.getAccount());
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosByAccount(cahoots3.getAccount());
         HashMap<String, ECKey> keyBag_B = computeKeyBag(cahoots3, utxos);
 
         T cahoots4 = (T)cahoots3.copy();

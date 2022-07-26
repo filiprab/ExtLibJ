@@ -179,7 +179,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
     //
     private MultiCahoots doMultiCahoots5_Stonewallx23(MultiCahoots multiCahoots6, CahootsWallet cahootsWallet, MultiCahootsContext cahootsContext) throws Exception {
         int account = multiCahoots6.getStonewallx2().getCounterpartyAccount();
-        List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(account);
+        List<CahootsUtxo> utxos = cahootsWallet.getUtxosByAccount(account);
 
         boolean noExtraFee = checkForNoExtraFee(multiCahoots6.getStonewallx2(), utxos);
         if(!noExtraFee) {
@@ -226,6 +226,9 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
             }
         }
 
+        log.debug(""+inputSum);
+        log.debug(""+outputSum);
+        log.debug(""+(stonewallx2.getFeeAmount()/2L));
         return (inputSum - outputSum) == (stonewallx2.getFeeAmount()/2L) && inputSum != 0 && outputSum != 0;
     }
 
