@@ -18,6 +18,7 @@ import com.samourai.xmanager.client.XManagerClient;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -261,6 +262,9 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
         multiCahoots6.setStep(6);
 
         debug("END doMultiCahoots6", multiCahoots6, cahootsContext);
+
+        System.out.println("STOWAWAY TX::");
+        System.out.println(Hex.toHexString(multiCahoots6.getStowaway().getTransaction().bitcoinSerialize()));
         return multiCahoots6;
     }
 
