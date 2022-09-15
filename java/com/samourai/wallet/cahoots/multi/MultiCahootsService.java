@@ -165,6 +165,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
             // this check used to be the initiator portion, but with the introduction of MultiCahoots, it remains -1 until the Stonewallx2 finishes, so we can get an accurate amount, so the check is here now.
             throw new Exception("Invalid amount");
         }
+        System.out.println("ACCOUNT:: " + stonewallContext.getAccount());
         List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stowawayContext.getAccount());
         ArrayList<CahootsUtxo> filteredUtxos = new ArrayList<>();
 
@@ -172,18 +173,21 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
         for (CahootsUtxo cahootsUtxo : utxos) {
             long value = cahootsUtxo.getValue();
             if (value != 100000 && value != 1000000 && value != 5000000 && value != 50000000) {
+                System.out.println("ADDING UTXO!!");
                 filteredUtxos.add(cahootsUtxo);
             }
         }
 
         // If it can't find any, it then adds all UTXOs from account 0 (deposit)
         if(filteredUtxos.isEmpty()) {
+            System.out.println("oh fuck oh god it's empty");
             filteredUtxos.addAll(cahootsWallet.getUtxosWpkhByAccount(SamouraiAccountIndex.DEPOSIT));
             stowaway0.setCounterpartyAccount(SamouraiAccountIndex.DEPOSIT);
         }
 
         // If it's still empty after that, then it uses Whirlpool UTXOs as a last resort
         if(filteredUtxos.isEmpty()) {
+            System.out.println("still empty oh shit");
             filteredUtxos.addAll(utxos);
         }
 
