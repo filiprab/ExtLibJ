@@ -172,6 +172,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
         // Filter out all Whirlpool UTXOs from all tiers (0.001, 0.01, 0.05, 0.5), so that change and other mixed UTXOs are included
         for (CahootsUtxo cahootsUtxo : utxos) {
             long value = cahootsUtxo.getValue();
+            System.out.println("VALUE:: " + value);
             if (value != 100000 && value != 1000000 && value != 5000000 && value != 50000000) {
                 System.out.println("ADDING UTXO!!");
                 filteredUtxos.add(cahootsUtxo);
