@@ -101,10 +101,23 @@ public class DLEQProof {
         Pair<ECPoint, ECPoint> claim = Pair.of(secpPoint.normalize(), edPoint);
         System.out.println(Hex.toHexString(edPoint.getEncoded(false)));
         System.out.println(Hex.toHexString(secpPoint.getEncoded(false)));
-        ArrayList<byte[]> pedersenBlindings = new ArrayList<>();
+        // Pair<p, q>
+        ArrayList<Pair<BigInteger, BigInteger>> pedersenBlindings = new ArrayList<>();
         for(int i = 0; i < 252; i++) {
-
+            Pair<BigInteger, BigInteger> blinding = Pair.of(new ECKey().getPrivKey(), generateCurve25519Key());
+            pedersenBlindings.add(blinding);
+            System.out.println(blinding.getLeft() + ", " + blinding.getRight());
         }
+        BigInteger sumP = BigInteger.ZERO;
+        BigInteger sumQ = BigInteger.ZERO;
+        for(Pair<BigInteger, BigInteger> pedersenBlinding : pedersenBlindings) {
+            sumP = sumP.add(pedersenBlinding.getLeft());
+            sumQ = sumQ.add(pedersenBlinding.getRight());
+        }
+        Pair<BigInteger, BigInteger> sumBlindings = Pair.of(sumP, sumQ);
+        System.out.println("sumP: " + sumBlindings.getLeft());
+        System.out.println("sumQ: " + sumBlindings.getRight());
+
         return null;
     }
 
