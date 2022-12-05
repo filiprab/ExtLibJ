@@ -84,7 +84,7 @@ public class DLEQProof {
 
     public static void main(String args[])
     {
-        BigInteger secretKey = edKey();
+        BigInteger secretKey = generateCurve25519Key();
         DLEQProof dleqProof = prove(secretKey);
     }
 
@@ -116,7 +116,7 @@ public class DLEQProof {
         return (new FixedPointCombMultiplier()).multiply(CURVE.getG(), privKey);
     }
 
-    public static BigInteger edKey() {
+    public static BigInteger generateCurve25519Key() {
         ECKeyPairGenerator generator = new ECKeyPairGenerator();
         ECKeyGenerationParameters keygenParams = new ECKeyGenerationParameters(CURVE, new SecureRandom());
         generator.init(keygenParams);
