@@ -1,11 +1,26 @@
 package com.samourai.wallet.crypto.dleq;
 
+import com.samourai.wallet.util.Pair;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Utils;
+import org.bitcoinj.crypto.LazyECPoint;
+import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.ec.CustomNamedCurves;
+import org.bouncycastle.crypto.generators.ECKeyPairGenerator;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
+import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.math.ec.FixedPointCombMultiplier;
+import org.bouncycastle.util.encoders.Hex;
 
 import java.math.BigInteger;
+import java.security.SecureRandom;
+import java.util.ArrayList;
 
 public class DLEQProof {
     private final ECPoint g1;
@@ -64,44 +79,49 @@ public class DLEQProof {
         return (this.r.subtract(challenge.multiply(x).mod(curve.getOrder()))).mod(curve.getOrder());
     }
 
+    private static final X9ECParameters CURVE_PARAMS = CustomNamedCurves.getByName("curve25519");
+    private static final ECDomainParameters CURVE = new ECDomainParameters(CURVE_PARAMS.getCurve(), CURVE_PARAMS.getG(), CURVE_PARAMS.getN(), CURVE_PARAMS.getH());
+
     public static void main(String args[])
     {
-        // this will fail for now TODO: copy over the point hasher shit from https://github.com/jasonkresch/protect/blob/bfb3ffb83869910859ea5e74111741e85925d43c/pross-common/src/main/java/com/ibm/pross/common/util/crypto/ecc/PointHasher.java
-        final ECCurve curve = ECKey.CURVE.getCurve();
-        final ECPoint G1 = ECKey.CURVE.getG();
-        final ECPoint G2 = ECKey.CURVE.getG().multiply(new BigInteger(Sha256Hash.hash("nothing up my sleeve".getBytes())));
+        BigInteger secretKey = edKey();
+        DLEQProof dleqProof = prove(secretKey);
+    }
 
-        final BigInteger secret = new ECKey().getPrivKey();
-        final DLEQProof dleq = new DLEQProof(G1, G2, curve, secret);
+//! 1. For i=0..252 we show the ith commitment is either to 0 or 2^i
+//! 2. That the commiments are the same value for both sets.
+//! 3. The sum of the commitments equals to the claimed public keys on each curve.
 
-        // Verify result
-        final ECPoint H1 = dleq.getH1();
-        final ECPoint H2 = dleq.getH2();
-        final ECPoint a1 = dleq.getA1();
-        final ECPoint a2 = dleq.getA2();
-        final BigInteger challenge = new ECKey().getPrivKey();
-        final BigInteger s = dleq.getS(challenge);
+    public static DLEQProof prove(BigInteger privateKey) {
+        System.out.println(privateKey);
+        ECKey secpKey = ECKey.fromPrivate(privateKey);
+        ECPoint secpPoint = secpKey.getPubKeyPoint();
 
-        // Check first point
-        final ECPoint G1s = curve.getMultiplier().multiply(G1, s);
-        final ECPoint H1c = curve.getMultiplier().multiply(H1, challenge);
-        final ECPoint G1sH1c = G1s.add(H1c);
-        if (!G1sH1c.equals(a1))
-        {
-            System.err.println("Proof failed!");
-            return;
+        ECPoint edPoint = publicPointFromPrivate(privateKey);
+        Pair<ECPoint, ECPoint> claim = Pair.of(secpPoint.normalize(), edPoint);
+        System.out.println(Hex.toHexString(edPoint.getEncoded(false)));
+        System.out.println(Hex.toHexString(secpPoint.getEncoded(false)));
+        ArrayList<byte[]> pedersenBlindings = new ArrayList<>();
+        for(int i = 0; i < 252; i++) {
+
+        }
+        return null;
+    }
+
+    public static ECPoint publicPointFromPrivate(BigInteger privKey) {
+        if (privKey.bitLength() > CURVE.getN().bitLength()) {
+            privKey = privKey.mod(CURVE.getN());
         }
 
-        // Check second point
-        final ECPoint G2s = curve.getMultiplier().multiply(G2, s);
-        final ECPoint H2c = curve.getMultiplier().multiply(H2, challenge);
-        final ECPoint G2sH2c = G2s.add(H2c);
-        if (!G2sH2c.equals(a2))
-        {
-            System.err.println("Proof failed!");
-            return;
-        }
+        return (new FixedPointCombMultiplier()).multiply(CURVE.getG(), privKey);
+    }
 
-        System.out.println("Proof passed!");
+    public static BigInteger edKey() {
+        ECKeyPairGenerator generator = new ECKeyPairGenerator();
+        ECKeyGenerationParameters keygenParams = new ECKeyGenerationParameters(CURVE, new SecureRandom());
+        generator.init(keygenParams);
+        AsymmetricCipherKeyPair keypair = generator.generateKeyPair();
+        ECPrivateKeyParameters privParams = (ECPrivateKeyParameters)keypair.getPrivate();
+        return privParams.getD();
     }
 }
