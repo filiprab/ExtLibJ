@@ -99,9 +99,9 @@ public class DLEQProof {
         ECKey secpKey = ECKey.fromPrivate(privateKey);
         ECPoint secpPoint = secpKey.getPubKeyPoint();
 
-        ECPoint edPoint = publicPointFromPrivate(privateKey);
-        Pair<ECPoint, ECPoint> claim = Pair.of(secpPoint.normalize(), edPoint);
-        System.out.println(Hex.toHexString(edPoint.getEncoded(false)));
+        ECPoint curve25519Point = publicPointFromPrivate(privateKey);
+        Pair<ECPoint, ECPoint> claim = Pair.of(secpPoint.normalize(), curve25519Point);
+        System.out.println(Hex.toHexString(curve25519Point.getEncoded(false)));
         System.out.println(Hex.toHexString(secpPoint.getEncoded(false)));
         // Pair<p, q>
         ArrayList<Pair<BigInteger, BigInteger>> pedersenBlindings = new ArrayList<>();
@@ -119,6 +119,8 @@ public class DLEQProof {
         Pair<BigInteger, BigInteger> sumBlindings = Pair.of(sumP, sumQ);
         System.out.println("sumP: " + sumBlindings.getLeft());
         System.out.println("sumQ: " + sumBlindings.getRight());
+
+        boolean[] bits = toBits(privateKey);
 
         //temp
         // HP = secp base point G, normalized
@@ -142,12 +144,34 @@ public class DLEQProof {
         CrossCurveDLEQ crossCurveDLEQ = new CrossCurveDLEQ(HP, HQ, powersOfTwo);
 
         //TODO bits from secret key
+        ArrayList<Pair<ECPoint, ECPoint>> commitments = new ArrayList<>();
 
-        for(Pair<ECPoint, ECPoint> pow2 : crossCurveDLEQ.getPowersOfTwo()) {
+        assert bits.length == COMMITMENT_BITS;
+        assert pedersenBlindings.size() == COMMITMENT_BITS;
+        assert crossCurveDLEQ.getPowersOfTwo().size() == COMMITMENT_BITS;
+
+        for(int i = 0; i < COMMITMENT_BITS; i++) {
+            boolean bit = bits[i];
+            Pair<ECPoint, ECPoint> pow2 = crossCurveDLEQ.getPowersOfTwo().get(i);
             ECPoint H2P = pow2.getLeft();
             ECPoint H2Q = pow2.getRight();
-            //TODO for each bit in key (252)
-                 // TODO for each pedersen blinding (252)
+            Pair<BigInteger, BigInteger> r = pedersenBlindings.get(i);
+            BigInteger rP = r.getLeft();
+            BigInteger rQ = r.getRight();
+            ECPoint zeroCommitP = ECKey.CURVE.getG().multiply(rP);
+            ECPoint oneCommitP = zeroCommitP.add(H2P);
+
+            ECPoint zeroCommitQ = CURVE.getG().multiply(rQ);
+            ECPoint oneCommitQ = zeroCommitQ.add(H2Q);
+            commitments.add(Pair.of(
+                    conditionalSelect(zeroCommitP, oneCommitP, bit),
+                    conditionalSelect(zeroCommitQ, oneCommitQ, bit)
+            ));
+        }
+
+        System.out.println(commitments.size());
+        for(Pair<ECPoint, ECPoint> commitment : commitments) {
+            System.out.println(Hex.toHexString(commitment.getLeft().getEncoded(false)));
         }
         //TODO generate commitments
         // powers_of_two
@@ -156,6 +180,14 @@ public class DLEQProof {
         // zip up each pedersen blinding
         // resulting in ((secpPoint, edwardsPoint), bit/bool), (blindingP, blindingQ)
         return null;
+    }
+
+    private static ECPoint conditionalSelect(ECPoint a, ECPoint b, boolean choice) {
+        if(choice) {
+            return a.normalize();
+        } else {
+            return b.normalize();
+        }
     }
 
     public static ECPoint publicPointFromPrivate(BigInteger privKey) {
@@ -173,5 +205,23 @@ public class DLEQProof {
         AsymmetricCipherKeyPair keypair = generator.generateKeyPair();
         ECPrivateKeyParameters privParams = (ECPrivateKeyParameters)keypair.getPrivate();
         return privParams.getD();
+    }
+
+    private static boolean[] toBits(BigInteger privKey) {
+        byte[] keyBytes = privKey.toByteArray();
+        boolean[] bits = new boolean[COMMITMENT_BITS];
+
+        int index = 0;
+        for(int i = 0; i < 32; i++) {
+            for(int j = 0; j < 8; j++) {
+                bits[index + j] = (keyBytes[i] & (1 << j)) != 0;
+                if (i == 31 && j == 3) {
+                    break;
+                }
+            }
+            index += 8;
+        }
+
+        return bits;
     }
 }
