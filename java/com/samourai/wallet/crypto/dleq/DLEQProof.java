@@ -143,9 +143,7 @@ public class DLEQProof {
         // TODO "coreProofSystem"
         CrossCurveDLEQ crossCurveDLEQ = new CrossCurveDLEQ(HP, HQ, powersOfTwo);
 
-        //TODO bits from secret key
         ArrayList<Pair<ECPoint, ECPoint>> commitments = new ArrayList<>();
-
         assert bits.length == COMMITMENT_BITS;
         assert pedersenBlindings.size() == COMMITMENT_BITS;
         assert crossCurveDLEQ.getPowersOfTwo().size() == COMMITMENT_BITS;
