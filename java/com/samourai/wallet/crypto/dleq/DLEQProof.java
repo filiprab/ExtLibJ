@@ -82,6 +82,8 @@ public class DLEQProof {
     private static final X9ECParameters CURVE_PARAMS = CustomNamedCurves.getByName("curve25519");
     private static final ECDomainParameters CURVE = new ECDomainParameters(CURVE_PARAMS.getCurve(), CURVE_PARAMS.getG(), CURVE_PARAMS.getN(), CURVE_PARAMS.getH());
 
+    private static final int COMMITMENT_BITS = 252;
+
     public static void main(String args[])
     {
         BigInteger secretKey = generateCurve25519Key();
@@ -103,7 +105,7 @@ public class DLEQProof {
         System.out.println(Hex.toHexString(secpPoint.getEncoded(false)));
         // Pair<p, q>
         ArrayList<Pair<BigInteger, BigInteger>> pedersenBlindings = new ArrayList<>();
-        for(int i = 0; i < 252; i++) {
+        for(int i = 0; i < COMMITMENT_BITS; i++) {
             Pair<BigInteger, BigInteger> blinding = Pair.of(new ECKey().getPrivKey(), generateCurve25519Key());
             pedersenBlindings.add(blinding);
             System.out.println(blinding.getLeft() + ", " + blinding.getRight());
@@ -118,6 +120,41 @@ public class DLEQProof {
         System.out.println("sumP: " + sumBlindings.getLeft());
         System.out.println("sumQ: " + sumBlindings.getRight());
 
+        //temp
+        // HP = secp base point G, normalized
+        ECPoint HP = ECKey.CURVE.getG().normalize();
+        ECPoint HQ = CURVE.getG();
+        ECPoint tempHP = HP;
+        ECPoint tempHQ = HQ;
+        ArrayList<Pair<ECPoint, ECPoint>> powersOfTwo = new ArrayList<>();
+        // HQ = edwards base point
+        // compute 2^i * H for i = 0..252 by successively adding the result of the last addition
+        for(int i = 0; i < COMMITMENT_BITS; i++) {
+            tempHP = tempHP.add(tempHP).normalize();
+            tempHQ = tempHQ.add(tempHQ);
+
+            System.out.println(Hex.toHexString(tempHP.getEncoded(false)));
+            System.out.println(Hex.toHexString(tempHQ.getEncoded(false)));
+            powersOfTwo.add(Pair.of(tempHP, tempHQ));
+        }
+
+        // TODO "coreProofSystem"
+        CrossCurveDLEQ crossCurveDLEQ = new CrossCurveDLEQ(HP, HQ, powersOfTwo);
+
+        //TODO bits from secret key
+
+        for(Pair<ECPoint, ECPoint> pow2 : crossCurveDLEQ.getPowersOfTwo()) {
+            ECPoint H2P = pow2.getLeft();
+            ECPoint H2Q = pow2.getRight();
+            //TODO for each bit in key (252)
+                 // TODO for each pedersen blinding (252)
+        }
+        //TODO generate commitments
+        // powers_of_two
+        // iterate over each powers_of_two
+        // zip up each bit value
+        // zip up each pedersen blinding
+        // resulting in ((secpPoint, edwardsPoint), bit/bool), (blindingP, blindingQ)
         return null;
     }
 
