@@ -2,9 +2,6 @@ package com.samourai.wallet.crypto.dleq;
 
 import com.samourai.wallet.util.Pair;
 import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Utils;
-import org.bitcoinj.crypto.LazyECPoint;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.ec.CustomNamedCurves;
@@ -12,7 +9,6 @@ import org.bouncycastle.crypto.generators.ECKeyPairGenerator;
 import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
-import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.math.ec.FixedPointCombMultiplier;
@@ -171,13 +167,34 @@ public class DLEQProof {
         for(Pair<ECPoint, ECPoint> commitment : commitments) {
             System.out.println(Hex.toHexString(commitment.getLeft().getEncoded(false)));
         }
-        //TODO generate commitments
-        // powers_of_two
-        // iterate over each powers_of_two
-        // zip up each bit value
-        // zip up each pedersen blinding
-        // resulting in ((secpPoint, edwardsPoint), bit/bool), (blindingP, blindingQ)
+
+        //TODO generate statement
+        generateStatement(crossCurveDLEQ, sumBlindings, claim, commitments);
+
         return null;
+    }
+
+    private static void generateStatement(CrossCurveDLEQ crossCurveDLEQ, Pair<BigInteger, BigInteger> sumBlindings, Pair<ECPoint, ECPoint> claim, ArrayList<Pair<ECPoint, ECPoint>> commitments) {
+        ArrayList<Pair<Pair<ECPoint, ECPoint>, Pair<ECPoint, ECPoint>>> commitmentStatements = new ArrayList<>();
+        for(int i = 0; i < COMMITMENT_BITS; i++) {
+            Pair<ECPoint, ECPoint> pow2 = crossCurveDLEQ.getPowersOfTwo().get(i);
+            ECPoint H2P = pow2.getLeft();
+            ECPoint H2Q = pow2.getRight();
+            ECPoint cP = commitments.get(i).getLeft();
+            ECPoint cQ = commitments.get(i).getRight();
+            ECPoint cpSubH2P = cP.subtract(H2P).normalize();
+            Pair<ECPoint, ECPoint> pair1 = Pair.of(cP, cQ);
+            Pair<ECPoint, ECPoint> pair2 = Pair.of(cpSubH2P, cQ.subtract(H2Q));
+            commitmentStatements.add(Pair.of(pair1, pair2));
+        }
+
+        //TODO
+        /*
+                let (sumP, sumQ) = commitments.iter().fold(
+            (PointP::zero(), PointQ::identity()),
+            |(accP, accQ), (CP, CQ)| (g!(accP + CP), accQ + CQ),
+        );
+         */
     }
 
     private static ECPoint conditionalSelect(ECPoint a, ECPoint b, boolean choice) {
