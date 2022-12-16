@@ -17,6 +17,7 @@ import org.bouncycastle.util.encoders.Hex;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.List;
 
 public class DLEQProof {
     private final ECPoint g1;
@@ -114,7 +115,9 @@ public class DLEQProof {
         }
         Pair<BigInteger, BigInteger> sumBlindings = Pair.of(sumP, sumQ);
         System.out.println("sumP: " + sumBlindings.getLeft());
+        System.out.println("sumP: " + Hex.toHexString(ECKey.publicPointFromPrivate(sumBlindings.getLeft()).getEncoded(false)));
         System.out.println("sumQ: " + sumBlindings.getRight());
+        System.out.println("sumQ: " + Hex.toHexString(publicPointFromPrivate(sumBlindings.getRight()).getEncoded(false)));
 
         boolean[] bits = toBits(privateKey);
 
@@ -168,14 +171,16 @@ public class DLEQProof {
             System.out.println(Hex.toHexString(commitment.getLeft().getEncoded(false)));
         }
 
-        //TODO generate statement
-        generateStatement(crossCurveDLEQ, sumBlindings, claim, commitments);
+        //TODO holy fuck clean up this type shit
+        // pair(commitmentstatements, dleqGtoH)
+        Pair<ArrayList<Pair<Pair<ECPoint, ECPoint>, Pair<ECPoint, ECPoint>>>, Pair<Pair<ECPoint, Pair<ECPoint, ECPoint>>, Pair<ECPoint, Pair<ECPoint, ECPoint>>>> statement = generateStatement(crossCurveDLEQ, sumBlindings, claim, commitments);
 
         return null;
     }
 
-    private static void generateStatement(CrossCurveDLEQ crossCurveDLEQ, Pair<BigInteger, BigInteger> sumBlindings, Pair<ECPoint, ECPoint> claim, ArrayList<Pair<ECPoint, ECPoint>> commitments) {
-        ArrayList<Pair<Pair<ECPoint, ECPoint>, Pair<ECPoint, ECPoint>>> commitmentStatements = new ArrayList<>();
+    // wtf is this return object
+    private static Pair<ArrayList<Pair<Pair<ECPoint, ECPoint>, Pair<ECPoint, ECPoint>>>, Pair<Pair<ECPoint, Pair<ECPoint, ECPoint>>, Pair<ECPoint, Pair<ECPoint, ECPoint>>>> generateStatement(CrossCurveDLEQ crossCurveDLEQ, Pair<BigInteger, BigInteger> sumBlindings, Pair<ECPoint, ECPoint> claim, ArrayList<Pair<ECPoint, ECPoint>> commitments) {
+        ArrayList<Pair<Pair<ECPoint, ECPoint>, Pair<ECPoint, ECPoint>>> commitmentStatement = new ArrayList<>();
         for(int i = 0; i < COMMITMENT_BITS; i++) {
             Pair<ECPoint, ECPoint> pow2 = crossCurveDLEQ.getPowersOfTwo().get(i);
             ECPoint H2P = pow2.getLeft();
@@ -185,16 +190,34 @@ public class DLEQProof {
             ECPoint cpSubH2P = cP.subtract(H2P).normalize();
             Pair<ECPoint, ECPoint> pair1 = Pair.of(cP, cQ);
             Pair<ECPoint, ECPoint> pair2 = Pair.of(cpSubH2P, cQ.subtract(H2Q));
-            commitmentStatements.add(Pair.of(pair1, pair2));
+            commitmentStatement.add(Pair.of(pair1, pair2));
         }
 
-        //TODO
-        /*
-                let (sumP, sumQ) = commitments.iter().fold(
-            (PointP::zero(), PointQ::identity()),
-            |(accP, accQ), (CP, CQ)| (g!(accP + CP), accQ + CQ),
+        Pair<ECPoint, ECPoint> result = fold(Pair.of(ECKey.publicPointFromPrivate(BigInteger.ZERO), publicPointFromPrivate(BigInteger.ZERO)), commitments);
+        System.out.println(sumBlindings.getLeft());
+        System.out.println(ECKey.publicPointFromPrivate(sumBlindings.getLeft()));
+        System.out.println(result.getLeft());
+        ECPoint unblindedP = result.getLeft().subtract(ECKey.publicPointFromPrivate(sumBlindings.getLeft())).normalize();
+        ECPoint unblindedQ = result.getRight().subtract(publicPointFromPrivate(sumBlindings.getRight()));
+        System.out.println(Hex.toHexString(unblindedP.getEncoded(false)));
+        System.out.println(Hex.toHexString(unblindedQ.getEncoded(false)));
+
+        Pair<Pair<ECPoint, Pair<ECPoint, ECPoint>>, Pair<ECPoint, Pair<ECPoint, ECPoint>>> dleqGtoH = Pair.of(
+                Pair.of(claim.getLeft(), Pair.of(crossCurveDLEQ.getHP(), unblindedP)),
+                Pair.of(claim.getRight(), Pair.of(crossCurveDLEQ.getHQ(), unblindedQ))
         );
-         */
+
+        return Pair.of(commitmentStatement, dleqGtoH);
+    }
+
+    private static Pair<ECPoint, ECPoint> fold(Pair<ECPoint, ECPoint> init, List<Pair<ECPoint, ECPoint>> commitments) {
+        ECPoint sumP = init.getLeft();
+        ECPoint sumQ = init.getRight();
+        for(int i = 0; i < COMMITMENT_BITS; i++) {
+            sumP = sumP.add(commitments.get(i).getLeft());
+            sumQ = sumQ.add(commitments.get(i).getRight());
+        }
+        return Pair.of(sumP, sumQ);
     }
 
     private static ECPoint conditionalSelect(ECPoint a, ECPoint b, boolean choice) {

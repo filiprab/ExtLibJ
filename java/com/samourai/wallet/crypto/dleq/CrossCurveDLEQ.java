@@ -19,4 +19,12 @@ public class CrossCurveDLEQ {
     public List<Pair<ECPoint, ECPoint>> getPowersOfTwo() {
         return powersOfTwo;
     }
+
+    public ECPoint getHP() {
+        return HP;
+    }
+
+    public ECPoint getHQ() {
+        return HQ;
+    }
 }
