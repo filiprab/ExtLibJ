@@ -23,6 +23,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -312,7 +313,7 @@ public abstract class Cahoots2x extends Cahoots {
     //
     // counterparty
     //
-    public void doStep1(List<TransactionInput> inputs, List<TransactionOutput> outputs, ChainSupplier chainSupplier) throws Exception    {
+    public void doStep1(List<TransactionInput> inputs, List<TransactionOutput> outputs, ChainSupplier chainSupplier, @Nullable CahootsInputListener inputListener) throws Exception    {
         if(this.getStep() != 0 || this.getSpendAmount() == 0L)   {
             throw new Exception("Invalid step/amount");
         }
@@ -327,7 +328,7 @@ public abstract class Cahoots2x extends Cahoots {
             transaction = new Transaction(params);
             transaction.setVersion(2);
         }
-        appendTx(inputs, outputs, transaction, chainSupplier);
+        appendTx(inputs, outputs, transaction, chainSupplier, inputListener);
 
         this.setStep(1);
     }
@@ -335,9 +336,9 @@ public abstract class Cahoots2x extends Cahoots {
     //
     // sender
     //
-    public void doStep2(List<TransactionInput> inputs, List<TransactionOutput> outputs) throws Exception    {
+    public void doStep2(List<TransactionInput> inputs, List<TransactionOutput> outputs, @Nullable CahootsInputListener inputListener) throws Exception    {
         Transaction transaction = psbt.getTransaction();
-        appendTx(inputs, outputs, transaction, null); // no need to give chain supplier, psbt should have the lock time
+        appendTx(inputs, outputs, transaction, null, inputListener); // no need to give chain supplier, psbt should have the lock time
 
         this.setStep(2);
     }
@@ -382,11 +383,14 @@ public abstract class Cahoots2x extends Cahoots {
         this.setStep(4);
     }
 
-    protected void appendTx(List<TransactionInput> inputs, List<TransactionOutput> outputs, Transaction transaction, ChainSupplier chainSupplier) {
+    protected void appendTx(List<TransactionInput> inputs, List<TransactionOutput> outputs, Transaction transaction, ChainSupplier chainSupplier, @Nullable CahootsInputListener inputListener) {
         // append inputs
         for(TransactionInput input : inputs)   {
             input.setSequenceNumber(SEQUENCE_RBF_ENABLED);
             transaction.addInput(input);
+            if(inputListener != null) {
+                inputListener.addInProgressInput(input.getOutpoint().toString());
+            }
             outpoints.put(input.getOutpoint().getHash().toString() + "-" + input.getOutpoint().getIndex(), input.getValue().longValue());
         }
 

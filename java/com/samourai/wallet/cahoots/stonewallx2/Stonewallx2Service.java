@@ -25,6 +25,7 @@ import java.util.Objects;
 
 public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, Stonewallx2Context> {
     private static final Logger log = LoggerFactory.getLogger(Stonewallx2Service.class);
+    public CahootsInputListener inputListener = null;
 
     public Stonewallx2Service(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
         super(CahootsType.STONEWALLX2, bipFormatSupplier, params);
@@ -125,6 +126,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
             log.debug("BIP84 utxos:" + utxos.size());
         }
 
+        List<String> _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
         long totalContributedAmount = 0L;
         for (int step = 0; step < 3; step++) {
@@ -133,6 +135,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
                 step = 2;
             }
 
+            _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
             selectedUTXO = new ArrayList<CahootsUtxo>();
             totalContributedAmount = 0L;
             for (CahootsUtxo utxo : utxos) {
@@ -153,7 +156,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
                 }
 
                 MyTransactionOutPoint outpoint = utxo.getOutpoint();
-                if (!seenTxs.contains(outpoint.getHash().toString())) {
+                if (!seenTxs.contains(outpoint.getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     seenTxs.add(outpoint.getHash().toString());
 
                     selectedUTXO.add(utxo);
@@ -260,7 +263,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
         stonewall0.setCollabChange(changeAddress.getAddressString());
 
         STONEWALLx2 stonewall1 = stonewall0.copy();
-        stonewall1.doStep1(inputsA, outputsA, cahootsWallet.getChainSupplier());
+        stonewall1.doStep1(inputsA, outputsA, cahootsWallet.getChainSupplier(), inputListener);
 
         debug("END doSTONEWALLx2_1", stonewall1, cahootsContext);
         return stonewall1;
@@ -282,6 +285,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
         }
         int nbIncomingInputs = transaction.getInputs().size();
 
+        List<String> _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
         CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
         List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stonewall1.getAccount());
         shuffleUtxos(utxos);
@@ -291,7 +295,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
         }
 
         for (TransactionInput input : transaction.getInputs()) {
-            if (!seenTxs.contains(input.getOutpoint().getHash().toString())) {
+            if (!seenTxs.contains(input.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(input.getOutpoint().toString())) {
                 seenTxs.add(input.getOutpoint().getHash().toString());
             }
         }
@@ -308,6 +312,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
                 step = 2;
             }
 
+            _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
             List<String> _seenTxs = seenTxs;
             selectedUTXO = new ArrayList<CahootsUtxo>();
             totalSelectedAmount = 0;
@@ -329,7 +334,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
                         break;
                 }
 
-                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString())) {
+                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     _seenTxs.add(utxo.getOutpoint().getHash().toString());
 
                     selectedUTXO.add(utxo);
@@ -425,7 +430,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
         if(stonewall1.getTransaction().getLockTime() == 0) {
             throw new Exception("Locktime error: Please update."); // safety check
         } else {
-            stonewall2.doStep2(inputsB, outputsB);
+            stonewall2.doStep2(inputsB, outputsB, inputListener);
         }
 
         debug("END doSTONEWALLx2_2",stonewall2, cahootsContext);

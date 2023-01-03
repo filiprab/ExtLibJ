@@ -21,6 +21,7 @@ import java.util.List;
 
 public class StowawayService extends AbstractCahoots2xService<Stowaway, StowawayContext> {
     private static final Logger log = LoggerFactory.getLogger(StowawayService.class);
+    public CahootsInputListener inputListener = null;
 
     public StowawayService(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
         super(CahootsType.STOWAWAY, bipFormatSupplier, params);
@@ -139,7 +140,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         stowaway0.setCounterpartyAccount(cahootsContext.getAccount());
 
         Stowaway stowaway1 = stowaway0.copy();
-        stowaway1.doStep1(inputsA, outputsA, null);
+        stowaway1.doStep1(inputsA, outputsA, null, inputListener);
 
         debug("END doStowaway1", stowaway1, cahootsContext);
         return stowaway1;
@@ -152,13 +153,14 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             log.debug("BIP84 utxos:" + utxos.size());
         }
 
+        List<String> _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
         List<String> _seenTxs = seenTxs;
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
         long totalContributedAmount = 0L;
         List<CahootsUtxo> highUTXO = new ArrayList<CahootsUtxo>();
         for (CahootsUtxo utxo : utxos) {
             if (utxo.getValue() > stowaway0.getSpendAmount() + SamouraiWalletConst.bDust.longValue()) {
-                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString())) {
+                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     _seenTxs.add(utxo.getOutpoint().getHash().toString());
                     highUTXO.add(utxo);
                 }
@@ -176,7 +178,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         if (selectedUTXO.size() == 0) {
             // select multiple utxos
             for (CahootsUtxo utxo : utxos) {
-                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString())) {
+                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     _seenTxs.add(utxo.getOutpoint().getHash().toString());
                     selectedUTXO.add(utxo);
                     totalContributedAmount += utxo.getValue();
@@ -225,6 +227,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             log.debug("BIP84 utxos:" + utxos.size());
         }
 
+        List<String> _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
         List<String> _seenTxs = seenTxs;
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
         int nbTotalSelectedOutPoints = 0;
@@ -232,7 +235,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         List<CahootsUtxo> lowUTXO = new ArrayList<CahootsUtxo>();
         for (CahootsUtxo utxo : utxos) {
             if(utxo.getValue() < stowaway1.getSpendAmount())    {
-                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString())) {
+                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     _seenTxs.add(utxo.getOutpoint().getHash().toString());
                     lowUTXO.add(utxo);
                 }
@@ -248,12 +251,14 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         for(List<CahootsUtxo> list : listOfLists)   {
 
             _seenTxs = seenTxs;
+            _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
+
             selectedUTXO.clear();
             totalSelectedAmount = 0L;
             nbTotalSelectedOutPoints = 0;
 
             for (CahootsUtxo utxo : list) {
-                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString())) {
+                if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     _seenTxs.add(utxo.getOutpoint().getHash().toString());
                     selectedUTXO.add(utxo);
                     totalSelectedAmount += utxo.getValue();
@@ -335,7 +340,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         outputsB.add(output_B0);
 
         Stowaway stowaway2 = stowaway1.copy();
-        stowaway2.doStep2(inputsB, outputsB);
+        stowaway2.doStep2(inputsB, outputsB, inputListener);
         stowaway2.setFeeAmount(fee);
         debug("END doStowaway2", stowaway2, cahootsContext);
         return stowaway2;
