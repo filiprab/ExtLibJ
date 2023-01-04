@@ -129,7 +129,7 @@ public class ManualCahootsService extends SorobanMessageService<ManualCahootsMes
         }
     }
 
-    private AbstractCahootsService getCahootsService(CahootsType cahootsType) throws Exception {
+    public AbstractCahootsService getCahootsService(CahootsType cahootsType) throws Exception {
         switch(cahootsType) {
             case STOWAWAY:
                 return stowawayService;

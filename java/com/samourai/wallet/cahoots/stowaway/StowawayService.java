@@ -21,7 +21,6 @@ import java.util.List;
 
 public class StowawayService extends AbstractCahoots2xService<Stowaway, StowawayContext> {
     private static final Logger log = LoggerFactory.getLogger(StowawayService.class);
-    public CahootsInputListener inputListener = null;
 
     public StowawayService(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
         super(CahootsType.STOWAWAY, bipFormatSupplier, params);
@@ -140,7 +139,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         stowaway0.setCounterpartyAccount(cahootsContext.getAccount());
 
         Stowaway stowaway1 = stowaway0.copy();
-        stowaway1.doStep1(inputsA, outputsA, null, inputListener);
+        stowaway1.doStep1(inputsA, outputsA, null, getInputListener());
 
         debug("END doStowaway1", stowaway1, cahootsContext);
         return stowaway1;
@@ -153,7 +152,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             log.debug("BIP84 utxos:" + utxos.size());
         }
 
-        List<String> _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
+        List<String> _seenOutpoints = getInputListener() != null ? getInputListener().getInProgressInputs() : new ArrayList<>();
         List<String> _seenTxs = seenTxs;
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
         long totalContributedAmount = 0L;
@@ -227,7 +226,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             log.debug("BIP84 utxos:" + utxos.size());
         }
 
-        List<String> _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
+        List<String> _seenOutpoints = getInputListener() != null ? getInputListener().getInProgressInputs() : new ArrayList<>();
         List<String> _seenTxs = seenTxs;
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
         int nbTotalSelectedOutPoints = 0;
@@ -251,7 +250,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         for(List<CahootsUtxo> list : listOfLists)   {
 
             _seenTxs = seenTxs;
-            _seenOutpoints = inputListener != null ? inputListener.getInProgressInputs() : new ArrayList<>();
+            _seenOutpoints = getInputListener() != null ? getInputListener().getInProgressInputs() : new ArrayList<>();
 
             selectedUTXO.clear();
             totalSelectedAmount = 0L;
@@ -340,7 +339,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         outputsB.add(output_B0);
 
         Stowaway stowaway2 = stowaway1.copy();
-        stowaway2.doStep2(inputsB, outputsB, inputListener);
+        stowaway2.doStep2(inputsB, outputsB, getInputListener());
         stowaway2.setFeeAmount(fee);
         debug("END doStowaway2", stowaway2, cahootsContext);
         return stowaway2;

@@ -25,6 +25,7 @@ public abstract class AbstractCahootsService<T extends Cahoots, C extends Cahoot
     private BipFormatSupplier bipFormatSupplier;
     protected NetworkParameters params;
     private TypeInteraction typeInteractionBroadcast;
+    private CahootsInputListener inputListener = null;
 
     public AbstractCahootsService(CahootsType cahootsType, BipFormatSupplier bipFormatSupplier, NetworkParameters params, TypeInteraction typeInteractionBroadcast) {
         this.cahootsType = cahootsType;
@@ -182,5 +183,13 @@ public abstract class AbstractCahootsService<T extends Cahoots, C extends Cahoot
     // overridable for tests
     protected void shuffleUtxos(List<CahootsUtxo> utxos) {
         Collections.shuffle(utxos);
+    }
+
+    public void setInputListener(CahootsInputListener listener) {
+        this.inputListener = listener;
+    }
+
+    public CahootsInputListener getInputListener() {
+        return inputListener;
     }
 }
