@@ -459,18 +459,22 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
             TransactionOutput output = cahootsUtxo.getOutpoint().getConnectedOutput();
             if(output != null) {
                 if (output.getScriptPubKey().isSentToP2WPKH()) {
+                    log.debug("Is P2WPKH...");
                     nbTotalSelectedOutPointsP2WPKH++;
                 } else if (output.getScriptPubKey().isPayToScriptHash()) {
+                    log.debug("Is P2SH...");
                     nbTotalSelectedOutPointsP2SHP2WPKH++;
                 }
             }
         }
         for(TransactionInput input : incomingInputs) {
-            Script scriptPubKey = input.getConnectedOutput().getScriptPubKey();
-            if(scriptPubKey != null) {
-                if (scriptPubKey.isSentToP2WPKH()) {
+            TransactionOutput output = input.getConnectedOutput();
+            if(output != null) {
+                if (output.getScriptPubKey().isSentToP2WPKH()) {
+                    log.debug("Is P2WPKH...");
                     nbIncomingInputsP2WPKH++;
-                } else if (scriptPubKey.isPayToScriptHash()) {
+                } else if (output.getScriptPubKey().isPayToScriptHash()) {
+                    log.debug("Is P2SH...");
                     nbIncomingInputsP2SHP2WPKH++;
                 }
             } else {

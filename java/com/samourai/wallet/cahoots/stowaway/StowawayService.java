@@ -169,11 +169,14 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         if(highUTXO.size() > 0)    {
             // select a single high utxo randomly
             CahootsUtxo utxo = highUTXO.get(getRandNextInt(highUTXO.size()));
-            if (log.isDebugEnabled()) {
-                log.debug("BIP84 selected random utxo: " + utxo);
+            TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
+            if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("BIP84 selected random utxo: " + utxo);
+                }
+                selectedUTXO.add(utxo);
+                totalContributedAmount = utxo.getValue();
             }
-            selectedUTXO.add(utxo);
-            totalContributedAmount = utxo.getValue();
         }
         if (selectedUTXO.size() == 0) {
             // select multiple utxos
@@ -378,8 +381,10 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             TransactionOutput output = cahootsUtxo.getOutpoint().getConnectedOutput();
             if(output != null) {
                 if (output.getScriptPubKey().isSentToP2WPKH()) {
+                    log.debug("Is P2WPKH...");
                     nbTotalSelectedOutPointsP2WPKH++;
                 } else if (output.getScriptPubKey().isPayToScriptHash()) {
+                    log.debug("Is P2SH...");
                     nbTotalSelectedOutPointsP2SHP2WPKH++;
                 }
             }
@@ -388,8 +393,10 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             TransactionOutput output = input.getConnectedOutput();
             if(output != null) {
                 if (output.getScriptPubKey().isSentToP2WPKH()) {
+                    log.debug("Is P2WPKH...");
                     nbIncomingInputsP2WPKH++;
                 } else if (output.getScriptPubKey().isPayToScriptHash()) {
+                    log.debug("Is P2SH...");
                     nbIncomingInputsP2SHP2WPKH++;
                 }
             } else {
