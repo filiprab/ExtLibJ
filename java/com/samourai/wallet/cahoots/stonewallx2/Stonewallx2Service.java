@@ -157,12 +157,15 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
 
                 MyTransactionOutPoint outpoint = utxo.getOutpoint();
                 if (!seenTxs.contains(outpoint.getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
-                    seenTxs.add(outpoint.getHash().toString());
+                    TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
+                    if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+                        seenTxs.add(outpoint.getHash().toString());
 
-                    selectedUTXO.add(utxo);
-                    totalContributedAmount += utxo.getValue();
-                    if (log.isDebugEnabled()) {
-                        log.debug("BIP84 selected utxo: " + utxo);
+                        selectedUTXO.add(utxo);
+                        totalContributedAmount += utxo.getValue();
+                        if (log.isDebugEnabled()) {
+                            log.debug("BIP84 selected utxo: " + utxo);
+                        }
                     }
                 }
 

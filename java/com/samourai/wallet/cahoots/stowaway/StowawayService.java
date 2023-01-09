@@ -223,7 +223,6 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         if (log.isDebugEnabled()) {
             log.debug("step2 tx:" + Hex.toHexString(transaction.bitcoinSerialize()));
         }
-        int nbIncomingInputs = transaction.getInputs().size();
 
         CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
         List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stowaway1.getAccount());
@@ -238,7 +237,6 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         List<String> _seenOutpoints = getInputListener() != null ? getInputListener().getInProgressInputs() : new ArrayList<>();
         List<String> _seenTxs = seenTxs;
         List<CahootsUtxo> selectedUTXO = new ArrayList<CahootsUtxo>();
-        int nbTotalSelectedOutPoints = 0;
         long totalSelectedAmount = 0L;
         List<CahootsUtxo> lowUTXO = new ArrayList<CahootsUtxo>();
         for (CahootsUtxo utxo : utxos) {
@@ -263,7 +261,6 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
 
             selectedUTXO.clear();
             totalSelectedAmount = 0L;
-            nbTotalSelectedOutPoints = 0;
 
             for (CahootsUtxo utxo : list) {
                 if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
@@ -275,7 +272,6 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
                         if (log.isDebugEnabled()) {
                             log.debug("BIP84 selected utxo: " + utxo);
                         }
-                        nbTotalSelectedOutPoints ++;
                     } else {
                         log.info("::Output is null!");
                     }
@@ -285,7 +281,6 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
                     // discard "extra" utxo, if any
                     List<CahootsUtxo> _selectedUTXO = new ArrayList<CahootsUtxo>();
                     Collections.reverse(selectedUTXO);
-                    int _nbTotalSelectedOutPoints = 0;
                     long _totalSelectedAmount = 0L;
                     for (CahootsUtxo utxoSel : selectedUTXO) {
                         _selectedUTXO.add(utxoSel);
@@ -293,12 +288,10 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
                         if (log.isDebugEnabled()) {
                             log.debug("BIP84 post selected utxo: " + utxoSel);
                         }
-                        _nbTotalSelectedOutPoints ++;
                         if (stowaway1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_selectedUTXO, transaction.getInputs(), feePerB))) {
                             selectedUTXO.clear();
                             selectedUTXO.addAll(_selectedUTXO);
                             totalSelectedAmount = _totalSelectedAmount;
-                            nbTotalSelectedOutPoints = _nbTotalSelectedOutPoints;
                             break;
                         }
                     }
