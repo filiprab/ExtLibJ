@@ -158,7 +158,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
                 MyTransactionOutPoint outpoint = utxo.getOutpoint();
                 if (!seenTxs.contains(outpoint.getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
-                    if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+                    if(isValidUtxo(output)) {
                         seenTxs.add(outpoint.getHash().toString());
 
                         selectedUTXO.add(utxo);
@@ -521,5 +521,8 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
         return maxSpendAmount;
     }
 
+    private boolean isValidUtxo(TransactionOutput output) {
+        return output != null && !output.getScriptPubKey().isSentToAddress() && !output.getScriptPubKey().isPayToScriptHash();
+    }
     public static final Coin THRESHOLD = Coin.valueOf(200000000);
 }

@@ -170,7 +170,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             // select a single high utxo randomly
             CahootsUtxo utxo = highUTXO.get(getRandNextInt(highUTXO.size()));
             TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
-            if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+            if(isValidUtxo(output)) {
                 if (log.isDebugEnabled()) {
                     log.debug("BIP84 selected random utxo: " + utxo);
                 }
@@ -183,7 +183,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             for (CahootsUtxo utxo : utxos) {
                 if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
-                    if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+                    if(isValidUtxo(output)) {
                         _seenTxs.add(utxo.getOutpoint().getHash().toString());
                         selectedUTXO.add(utxo);
                         totalContributedAmount += utxo.getValue();
@@ -265,7 +265,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             for (CahootsUtxo utxo : list) {
                 if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
                     TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
-                    if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+                    if(isValidUtxo(output)) {
                         _seenTxs.add(utxo.getOutpoint().getHash().toString());
                         selectedUTXO.add(utxo);
                         totalSelectedAmount += utxo.getValue();
@@ -422,5 +422,9 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
                 throw new Exception("Unknown typeUser");
         }
         return maxSpendAmount;
+    }
+
+    private boolean isValidUtxo(TransactionOutput output) {
+        return output != null && !output.getScriptPubKey().isSentToAddress() && !output.getScriptPubKey().isPayToScriptHash();
     }
 }
