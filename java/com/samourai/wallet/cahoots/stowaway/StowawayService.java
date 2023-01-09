@@ -5,6 +5,7 @@ import com.samourai.wallet.SamouraiWalletConst;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.cahoots.*;
+import com.samourai.wallet.cahoots.psbt.PSBTEntry;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.util.FeeUtil;
@@ -359,6 +360,9 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
     public Stowaway doStep3(Stowaway cahoots2, StowawayContext cahootsContext) throws Exception {
         Stowaway cahoots3 = super.doStep3(cahoots2, cahootsContext);
 
+        for(PSBTEntry psbtEntry : cahoots2.getPSBT().getPsbtInputs()) {
+            log.debug(Hex.toHexString(psbtEntry.getKeyType()) + " /// " + Hex.toHexString(psbtEntry.getKeyData()));
+        }
         // keep track of minerFeePaid
         cahootsContext.setMinerFeePaid(0); // counterparty pays no minerFee
         return cahoots3;
