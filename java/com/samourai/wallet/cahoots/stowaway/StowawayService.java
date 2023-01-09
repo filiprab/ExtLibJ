@@ -11,7 +11,6 @@ import com.samourai.wallet.util.FeeUtil;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
-import org.bitcoinj.script.ScriptBuilder;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,14 +179,19 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
             // select multiple utxos
             for (CahootsUtxo utxo : utxos) {
                 if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
-                    _seenTxs.add(utxo.getOutpoint().getHash().toString());
-                    selectedUTXO.add(utxo);
-                    totalContributedAmount += utxo.getValue();
-                    if (log.isDebugEnabled()) {
-                        log.debug("BIP84 selected utxo: " + utxo);
-                    }
-                    if (stowaway0.isContributedAmountSufficient(totalContributedAmount)) {
-                        break;
+                    TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
+                    if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+                        _seenTxs.add(utxo.getOutpoint().getHash().toString());
+                        selectedUTXO.add(utxo);
+                        totalContributedAmount += utxo.getValue();
+                        if (log.isDebugEnabled()) {
+                            log.debug("BIP84 selected utxo: " + utxo);
+                        }
+                        if (stowaway0.isContributedAmountSufficient(totalContributedAmount)) {
+                            break;
+                        }
+                    } else {
+                        log.info("::Output is null!");
                     }
                 }
             }
@@ -273,7 +277,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
                         log.info("::Output is null!");
                     }
                 }
-                if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+                if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, transaction.getInputs(), feePerB))) {
 
                     // discard "extra" utxo, if any
                     List<CahootsUtxo> _selectedUTXO = new ArrayList<CahootsUtxo>();
@@ -287,7 +291,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
                             log.debug("BIP84 post selected utxo: " + utxoSel);
                         }
                         _nbTotalSelectedOutPoints ++;
-                        if (stowaway1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+                        if (stowaway1.isContributedAmountSufficient(_totalSelectedAmount, estimatedFee(_selectedUTXO, transaction.getInputs(), feePerB))) {
                             selectedUTXO.clear();
                             selectedUTXO.addAll(_selectedUTXO);
                             totalSelectedAmount = _totalSelectedAmount;
@@ -299,12 +303,12 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
                     break;
                 }
             }
-            if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
+            if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, transaction.getInputs(), feePerB))) {
                 break;
             }
         }
 
-        long fee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB);
+        long fee = estimatedFee(selectedUTXO, transaction.getInputs(), feePerB);
         if (log.isDebugEnabled()) {
             log.debug("fee:" + fee);
             log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+stowaway1.computeRequiredAmount(fee));
@@ -364,8 +368,35 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         return cahoots3;
     }
 
-    private long estimatedFee(int nbTotalSelectedOutPoints, int nbIncomingInputs, long feePerB) {
-        return FeeUtil.getInstance().estimatedFeeSegwit(0, 0, nbTotalSelectedOutPoints + nbIncomingInputs, 2, 0, feePerB);
+    private long estimatedFee(List<CahootsUtxo> totalSelectedOutpoints, List<TransactionInput> incomingInputs, long feePerB) throws Exception {
+        int nbTotalSelectedOutPointsP2WPKH = 0;
+        int nbTotalSelectedOutPointsP2SHP2WPKH = 0;
+
+        int nbIncomingInputsP2SHP2WPKH = 0;
+        int nbIncomingInputsP2WPKH = 0;
+        for(CahootsUtxo cahootsUtxo : totalSelectedOutpoints) {
+            TransactionOutput output = cahootsUtxo.getOutpoint().getConnectedOutput();
+            if(output != null) {
+                if (output.getScriptPubKey().isSentToP2WPKH()) {
+                    nbTotalSelectedOutPointsP2WPKH++;
+                } else if (output.getScriptPubKey().isPayToScriptHash()) {
+                    nbTotalSelectedOutPointsP2SHP2WPKH++;
+                }
+            }
+        }
+        for(TransactionInput input : incomingInputs) {
+            TransactionOutput output = input.getConnectedOutput();
+            if(output != null) {
+                if (output.getScriptPubKey().isSentToP2WPKH()) {
+                    nbIncomingInputsP2WPKH++;
+                } else if (output.getScriptPubKey().isPayToScriptHash()) {
+                    nbIncomingInputsP2SHP2WPKH++;
+                }
+            } else {
+                throw new Exception("scriptPubKey cannot be null");
+            }
+        }
+        return FeeUtil.getInstance().estimatedFeeSegwit(0, nbTotalSelectedOutPointsP2SHP2WPKH + nbIncomingInputsP2SHP2WPKH, nbTotalSelectedOutPointsP2WPKH + nbIncomingInputsP2WPKH, 2, 0, feePerB);
     }
 
     @Override

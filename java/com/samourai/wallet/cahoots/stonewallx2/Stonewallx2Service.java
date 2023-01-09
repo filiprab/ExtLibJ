@@ -14,6 +14,7 @@ import com.samourai.xmanager.protocol.XManagerService;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.*;
 import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.script.Script;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -282,8 +283,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
             log.debug("step2 tx:" + Hex.toHexString(transaction.bitcoinSerialize()));
             log.debug("step2 tx:" + transaction);
         }
-        int nbIncomingInputs = transaction.getInputs().size();
-
+        System.out.println("Tx hex:: " + Hex.toHexString(transaction.bitcoinSerialize()));
         List<String> _seenOutpoints = getInputListener() != null ? getInputListener().getInProgressInputs() : new ArrayList<>();
         CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
         List<CahootsUtxo> utxos = cahootsWallet.getUtxosWpkhByAccount(stonewall1.getAccount());
@@ -344,15 +344,15 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
                     }
                 }
 
-                if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, destination, feePerB))) {
+                if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, transaction.getInputs(), destination, feePerB))) {
                     break;
                 }
             }
-            if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, destination, feePerB))) {
+            if (stonewall1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(selectedUTXO, transaction.getInputs(), destination, feePerB))) {
                 break;
             }
         }
-        long fee = estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, destination, feePerB);
+        long fee = estimatedFee(selectedUTXO, transaction.getInputs(), destination, feePerB);
         if (log.isDebugEnabled()) {
             log.debug("fee:" + fee);
             log.debug(selectedUTXO.size()+" selected utxos, totalContributedAmount="+totalSelectedAmount+", requiredAmount="+stonewall1.computeRequiredAmount(fee));
@@ -449,7 +449,34 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
         return cahoots3;
     }
 
-    private long estimatedFee(int nbTotalSelectedOutPoints, int nbIncomingInputs, String destination, long feePerB) {
+    private long estimatedFee(List<CahootsUtxo> totalSelectedOutpoints, List<TransactionInput> incomingInputs, String destination, long feePerB) throws Exception {
+        int nbTotalSelectedOutPointsP2WPKH = 0;
+        int nbTotalSelectedOutPointsP2SHP2WPKH = 0;
+
+        int nbIncomingInputsP2SHP2WPKH = 0;
+        int nbIncomingInputsP2WPKH = 0;
+        for(CahootsUtxo cahootsUtxo : totalSelectedOutpoints) {
+            TransactionOutput output = cahootsUtxo.getOutpoint().getConnectedOutput();
+            if(output != null) {
+                if (output.getScriptPubKey().isSentToP2WPKH()) {
+                    nbTotalSelectedOutPointsP2WPKH++;
+                } else if (output.getScriptPubKey().isPayToScriptHash()) {
+                    nbTotalSelectedOutPointsP2SHP2WPKH++;
+                }
+            }
+        }
+        for(TransactionInput input : incomingInputs) {
+            Script scriptPubKey = input.getConnectedOutput().getScriptPubKey();
+            if(scriptPubKey != null) {
+                if (scriptPubKey.isSentToP2WPKH()) {
+                    nbIncomingInputsP2WPKH++;
+                } else if (scriptPubKey.isPayToScriptHash()) {
+                    nbIncomingInputsP2SHP2WPKH++;
+                }
+            } else {
+                throw new Exception("scriptPubKey cannot be null");
+            }
+        }
         int outputsNonP2WSH_P2TR = 4;
         int outputsP2WSH_P2TR = 0;
         if (FormatsUtilGeneric.getInstance().isValidP2WSH_P2TR(destination)) {
@@ -457,7 +484,7 @@ public class Stonewallx2Service extends AbstractCahoots2xService<STONEWALLx2, St
             outputsNonP2WSH_P2TR--;
             outputsP2WSH_P2TR++;
         }
-        return FeeUtil.getInstance().estimatedFeeSegwit(0, 0, nbTotalSelectedOutPoints + nbIncomingInputs, outputsNonP2WSH_P2TR, outputsP2WSH_P2TR, 0, feePerB);
+        return FeeUtil.getInstance().estimatedFeeSegwit(0, nbTotalSelectedOutPointsP2SHP2WPKH + nbIncomingInputsP2SHP2WPKH, nbTotalSelectedOutPointsP2WPKH + nbIncomingInputsP2WPKH, outputsNonP2WSH_P2TR, outputsP2WSH_P2TR, 0, feePerB);
     }
 
     @Override
