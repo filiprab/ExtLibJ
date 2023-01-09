@@ -72,7 +72,7 @@ public class MultiCahoots extends Cahoots {
     }
 
     @Override
-    public void signTx(HashMap<String,ECKey> keyBag) throws Exception {
+    public void signTx(HashMap<String,ECKey> keyBag) {
         if(getStep() > 3) {
             stonewallx2.signTx(keyBag);
         } else {
