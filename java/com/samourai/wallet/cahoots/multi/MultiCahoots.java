@@ -136,13 +136,14 @@ public class MultiCahoots extends Cahoots {
 
     @Override
     public void pushTx(IPushTx pushTx) throws Exception {
-        // push stonewallx2
-        String stonewallHex = TxUtil.getInstance().getTxHex(getStonewallTransaction());
-        pushTx.pushTx(stonewallHex);
-
         // push stowaway
         String stowawayHex = TxUtil.getInstance().getTxHex(getStowawayTransaction());
-        pushTx.pushTx(stowawayHex);
+        String stowawayTxid = pushTx.pushTx(stowawayHex);
+        if(!stowawayTxid.isEmpty()) {
+            // push stonewallx2
+            String stonewallHex = TxUtil.getInstance().getTxHex(getStonewallTransaction());
+            pushTx.pushTx(stonewallHex);
+        }
     }
 
     @Override
