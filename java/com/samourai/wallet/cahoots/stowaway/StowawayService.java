@@ -10,6 +10,8 @@ import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
 import org.bitcoinj.core.*;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptBuilder;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -258,13 +260,18 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
 
             for (CahootsUtxo utxo : list) {
                 if (!_seenTxs.contains(utxo.getOutpoint().getHash().toString()) && !_seenOutpoints.contains(utxo.getOutpoint().toString())) {
-                    _seenTxs.add(utxo.getOutpoint().getHash().toString());
-                    selectedUTXO.add(utxo);
-                    totalSelectedAmount += utxo.getValue();
-                    if (log.isDebugEnabled()) {
-                        log.debug("BIP84 selected utxo: " + utxo);
+                    TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
+                    if(output != null && !output.getScriptPubKey().isPayToScriptHash()) {
+                        _seenTxs.add(utxo.getOutpoint().getHash().toString());
+                        selectedUTXO.add(utxo);
+                        totalSelectedAmount += utxo.getValue();
+                        if (log.isDebugEnabled()) {
+                            log.debug("BIP84 selected utxo: " + utxo);
+                        }
+                        nbTotalSelectedOutPoints ++;
+                    } else {
+                        log.info("::Output is null!");
                     }
-                    nbTotalSelectedOutPoints ++;
                 }
                 if (stowaway1.isContributedAmountSufficient(totalSelectedAmount, estimatedFee(nbTotalSelectedOutPoints, nbIncomingInputs, feePerB))) {
 
