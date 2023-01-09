@@ -166,7 +166,7 @@ public abstract class Cahoots {
         return toJSON().toString();
     }
 
-    public abstract void signTx(HashMap<String, ECKey> keyBag) throws Exception;
+    public abstract void signTx(HashMap<String, ECKey> keyBag);
 
     // getters below are used by Android review fragment
 

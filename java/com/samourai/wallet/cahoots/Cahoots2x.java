@@ -17,7 +17,6 @@ import com.samourai.wallet.util.Z85;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
-import org.bitcoinj.script.ScriptBuilder;
 import org.bouncycastle.util.encoders.Hex;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -245,7 +244,7 @@ public abstract class Cahoots2x extends Cahoots {
     }
 
     @Override
-    public void signTx(HashMap<String,ECKey> keyBag) throws Exception {
+    public void signTx(HashMap<String,ECKey> keyBag) {
 
         Transaction transaction = psbt.getTransaction();
         if (log.isDebugEnabled()) {
@@ -263,15 +262,13 @@ public abstract class Cahoots2x extends Cahoots {
                 }
 
                 ECKey key = keyBag.get(outpoint.toString());
-                Script scriptPubKey = outpoint.getConnectedOutput().getScriptPubKey();
-                Script redeemScript = null;
-                if(scriptPubKey.isPayToScriptHash() || scriptPubKey.isSentToP2WPKH()) {
-                    redeemScript = ScriptBuilder.createP2WPKHOutputScript(key);
-                } else {
-                    throw new Exception("UTXO is not P2SH or P2WPKH");
-                }
-                if(redeemScript == null) throw new Exception("Cannot sign UTXO");
+                SegwitAddress segwitAddress = new SegwitAddress(key.getPubKey(), getParams());
 
+                if (log.isDebugEnabled()) {
+                    log.debug("signTx bech32:" + segwitAddress.getBech32AsString());
+                }
+
+                final Script redeemScript = segwitAddress.segwitRedeemScript();
                 final Script scriptCode = redeemScript.scriptCode();
 
                 long value = outpoints.get(outpoint.getHash().toString() + "-" + outpoint.getIndex());
@@ -284,9 +281,7 @@ public abstract class Cahoots2x extends Cahoots {
                 witness.setPush(0, sig.encodeToBitcoin());
                 witness.setPush(1, key.getPubKey());
                 transaction.setWitness(i, witness);
-                if(scriptPubKey.isPayToScriptHash()) {
-                    transaction.getInputs().get(i).setScriptSig(redeemScript);
-                }
+
             }
 
         }
@@ -351,7 +346,7 @@ public abstract class Cahoots2x extends Cahoots {
     //
     // counterparty
     //
-    public void doStep3(HashMap<String,ECKey> keyBag) throws Exception {
+    public void doStep3(HashMap<String,ECKey> keyBag)    {
         Transaction transaction = this.getTransaction();
 
         // sort inputs
@@ -382,7 +377,7 @@ public abstract class Cahoots2x extends Cahoots {
     //
     // sender
     //
-    public void doStep4(HashMap<String,ECKey> keyBag) throws Exception {
+    public void doStep4(HashMap<String,ECKey> keyBag)    {
         signTx(keyBag);
 
         this.setStep(4);
