@@ -1,6 +1,6 @@
-package com.samourai.wallet.cahoots.psbt;
+package com.samourai.wallet.psbt;
 
-public class PSBTEntry    {
+public class PSBTEntry {
 
     public PSBTEntry() { ; }
 

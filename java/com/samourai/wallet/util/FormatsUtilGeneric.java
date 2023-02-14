@@ -1,7 +1,7 @@
 package com.samourai.wallet.util;
 
 import com.samourai.wallet.bip47.rpc.PaymentCode;
-import com.samourai.wallet.cahoots.psbt.PSBT;
+import com.samourai.wallet.psbt.PSBT;
 import com.samourai.wallet.segwit.bech32.Bech32;
 import com.samourai.wallet.segwit.bech32.Bech32Segwit;
 import org.apache.commons.lang3.StringUtils;

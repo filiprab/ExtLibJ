@@ -5,7 +5,7 @@ import com.samourai.soroban.cahoots.ManualCahootsMessage;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.CahootsType;
-import com.samourai.wallet.cahoots.psbt.PSBT;
+import com.samourai.wallet.psbt.PSBT;
 import com.samourai.wallet.cahoots.stonewallx2.STONEWALLx2;
 import com.samourai.wallet.cahoots.stowaway.Stowaway;
 import com.samourai.wallet.send.beans.SpendTx;

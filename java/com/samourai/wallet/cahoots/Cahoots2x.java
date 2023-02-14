@@ -5,7 +5,7 @@ import com.samourai.wallet.SamouraiWalletConst;
 import com.samourai.wallet.bip69.BIP69InputComparator;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
-import com.samourai.wallet.cahoots.psbt.PSBT;
+import com.samourai.wallet.psbt.PSBT;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.send.beans.SpendTx;
@@ -238,7 +238,7 @@ public abstract class Cahoots2x extends Cahoots {
             if(obj.has("fingerprint_collab"))    {
                 fingerprintCollab = Hex.decode(obj.getString("fingerprint_collab"));
             }
-            this.psbt = obj.getString("psbt").equals("") ? null : PSBT.fromBytes(Z85.getInstance().decode(obj.getString("psbt")), getParams());
+            this.psbt = obj.getString("psbt").equals("") ? null : PSBT.fromBytes(Z85.getInstance().decode(obj.getString("psbt")));
         }
     }
 
