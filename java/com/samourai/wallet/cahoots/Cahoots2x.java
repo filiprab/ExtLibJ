@@ -238,7 +238,7 @@ public abstract class Cahoots2x extends Cahoots {
             if(obj.has("fingerprint_collab"))    {
                 fingerprintCollab = Hex.decode(obj.getString("fingerprint_collab"));
             }
-            this.psbt = obj.getString("psbt").equals("") ? null : PSBT.fromBytes(Z85.getInstance().decode(obj.getString("psbt")));
+            this.psbt = obj.getString("psbt").equals("") ? null : PSBT.fromBytes(Z85.getInstance().decode(obj.getString("psbt")), getParams());
         }
     }
 
