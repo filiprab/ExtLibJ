@@ -8,6 +8,7 @@ import com.samourai.wallet.cahoots.*;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.util.FeeUtil;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
@@ -168,7 +169,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         }
         if(highUTXO.size() > 0)    {
             // select a single high utxo randomly
-            CahootsUtxo utxo = highUTXO.get(getRandNextInt(highUTXO.size()));
+            CahootsUtxo utxo = highUTXO.get(RandomUtil.getInstance().nextInt(highUTXO.size()));
             TransactionOutput output = utxo.getOutpoint().getConnectedOutput();
             if(isValidUtxo(output)) {
                 if (log.isDebugEnabled()) {
@@ -254,7 +255,7 @@ public class StowawayService extends AbstractCahoots2xService<Stowaway, Stowaway
         long feePerB = cahootsContext.getFeePerB();
 
         List<List<CahootsUtxo>> listOfLists = new ArrayList<List<CahootsUtxo>>();
-        shuffleUtxos(lowUTXO);
+        RandomUtil.getInstance().shuffle(lowUTXO);
         listOfLists.add(lowUTXO);
         listOfLists.add(utxos);
         for(List<CahootsUtxo> list : listOfLists)   {
