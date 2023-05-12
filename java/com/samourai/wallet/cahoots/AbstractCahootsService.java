@@ -8,10 +8,13 @@ import com.samourai.soroban.client.SorobanInteraction;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.send.MyTransactionOutPoint;
+import com.samourai.wallet.util.RandomUtil;
 import org.bitcoinj.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
