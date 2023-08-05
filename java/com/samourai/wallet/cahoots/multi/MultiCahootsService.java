@@ -16,6 +16,7 @@ import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
 import com.samourai.xmanager.client.XManagerClient;
+import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
@@ -37,6 +38,7 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
     private static final Logger log = LoggerFactory.getLogger(MultiCahootsService.class);
     private Stonewallx2Service stonewallx2Service;
     private StowawayService stowawayService;
+    private final long SPEND_LIMIT = Coin.parseCoin("1.5").value;
 
     private long threshold = -1;
 
@@ -117,9 +119,14 @@ public class MultiCahootsService extends AbstractCahootsService<MultiCahoots, Mu
     private MultiCahoots doMultiCahoots1_Stonewallx21(MultiCahoots multiCahoots0, MultiCahootsContext cahootsContext) throws Exception {
         debug("BEGIN doMultiCahoots1", multiCahoots0, cahootsContext);
 
+        STONEWALLx2 stonewalLx2 = multiCahoots0.getStonewallx2();
+
+        if(stonewalLx2.getSpendAmount() > SPEND_LIMIT)
+            throw new Exception("Spend amount is greater than allowed limit.");
+
         Stonewallx2Context stonewallContext = cahootsContext.getStonewallx2Context();
         XManagerClient xManagerClient = cahootsContext.getxManagerClient();
-        STONEWALLx2 stonewall1 = stonewallx2Service.doSTONEWALLx2_1_Multi(multiCahoots0.getStonewallx2(), stonewallContext, new ArrayList<>(), xManagerClient, this.threshold);
+        STONEWALLx2 stonewall1 = stonewallx2Service.doSTONEWALLx2_1_Multi(stonewalLx2, stonewallContext, new ArrayList<>(), xManagerClient, this.threshold);
 
         MultiCahoots multiCahoots1 = new MultiCahoots(multiCahoots0);
         multiCahoots1.setStonewallx2(stonewall1);
