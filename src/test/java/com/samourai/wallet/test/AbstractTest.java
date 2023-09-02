@@ -20,10 +20,7 @@ import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.beans.SpendTx;
 import com.samourai.wallet.send.beans.SpendType;
 import com.samourai.wallet.send.provider.MockUtxoProvider;
-import com.samourai.wallet.util.FormatsUtilGeneric;
-import com.samourai.wallet.util.RandomUtil;
-import com.samourai.wallet.util.TxUtil;
-import com.samourai.wallet.util.Z85;
+import com.samourai.wallet.util.*;
 import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import org.bitcoinj.core.*;
@@ -41,7 +38,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class AbstractTest {
+public abstract class AbstractTest {
   protected static final Logger log = LoggerFactory.getLogger(AbstractTest.class);
 
   protected static final String SEED_WORDS = "all all all all all all all all all all all all";
@@ -57,6 +54,7 @@ public class AbstractTest {
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected IHttpClient httpClient;
   protected BipFormatSupplier bipFormatSupplier = BIP_FORMAT.PROVIDER;
+  protected RandomUtil randomUtil = RandomUtil.getInstance();
 
   protected ChainSupplier mockChainSupplier = () -> {
     WalletResponse.InfoBlock infoBlock = new WalletResponse.InfoBlock();
@@ -73,6 +71,7 @@ public class AbstractTest {
   protected BIP47UtilGeneric bip47Util = Bip47UtilJava.getInstance();
   protected MockPushTx pushTx = new MockPushTx(params);
   protected Z85 z85 = Z85.getInstance();
+  protected JSONUtils jsonUtils = JSONUtils.getInstance();
 
   public AbstractTest() {
     try {

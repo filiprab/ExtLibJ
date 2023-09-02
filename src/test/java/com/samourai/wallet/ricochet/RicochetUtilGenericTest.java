@@ -5,6 +5,7 @@ import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +15,7 @@ public class RicochetUtilGenericTest extends AbstractTest {
     private BipWallet bipWalletRicochet;
     private BipWallet bipWalletSpend;
 
+    @BeforeEach
     @Override
     public void setUp() throws Exception {
         super.setUp();
