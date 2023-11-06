@@ -13,9 +13,7 @@ import org.bouncycastle.util.encoders.Hex;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -132,7 +130,8 @@ public class PSBT {
 
         ret = new PSBT(strPSBT, params);
         ret.setDebug(bDebug);
-        ret.read();
+        ret.parse();
+        //ret.parse2();
         /*
         if(ret.isParseOK())    {
             return ret;
@@ -200,9 +199,9 @@ public class PSBT {
         psbtBytes = Hex.decode(strPSBT);
         psbtByteBuffer = ByteBuffer.wrap(psbtBytes);
 
-        Log("--- ***** START ***** ---", true);
-        Log("---  PSBT length:" + psbtBytes.length + " ---", true);
-        Log("--- parsing header ---", true);
+        Log("--- ***** START ***** ---");
+        Log("---  PSBT length:" + psbtBytes.length + " ---");
+        Log("--- parsing header ---");
 
         byte[] magicBuf = new byte[4];
         psbtByteBuffer.get(magicBuf);
@@ -220,13 +219,13 @@ public class PSBT {
         while(psbtByteBuffer.hasRemaining()) {
 
             if(currentState == STATE_GLOBALS)    {
-                Log("--- parsing globals ---", true);
+                Log("--- parsing globals ---");
             }
             else if(currentState == STATE_INPUTS)   {
-                Log("--- parsing inputs ---", true);
+                Log("--- parsing inputs ---");
             }
             else if(currentState == STATE_OUTPUTS)   {
-                Log("--- parsing outputs ---", true);
+                Log("--- parsing outputs ---");
             }
             else    {
                 ;
@@ -234,7 +233,7 @@ public class PSBT {
 
             PSBTEntry entry = parse();
             if(entry == null)    {
-                Log("parse returned null entry", true);
+                Log("parse returned null entry");
 //                exit(0);
             }
             entry.setState(currentState);
@@ -267,33 +266,33 @@ public class PSBT {
                         parseOK = true;
                         break;
                     default:
-                        Log("unknown state", true);
+                        Log("unknown state");
                         break;
                 }
             }
             else if(currentState == STATE_GLOBALS)    {
                 switch(entry.getKeyType()[0])    {
                     case PSBT.PSBT_GLOBAL_UNSIGNED_TX:
-                        Log("transaction", true);
+                        Log("transaction");
                         transaction = new Transaction(params, entry.getData());
                         inputs = transaction.getInputs().size();
                         outputs = transaction.getOutputs().size();
-                        Log("inputs:" + inputs, true);
-                        Log("outputs:" + outputs, true);
-                        Log(transaction.toString(), true);
+                        Log("inputs:" + inputs);
+                        Log("outputs:" + outputs);
+                        Log(transaction.toString());
                         break;
                     case PSBT.PSBT_GLOBAL_XPUB:
                         if (entry.getKeyData() != null)
-                            Log("xpub: " + serializeXPUB(entry.getKeyData()), true);
+                            Log("xpub: " + serializeXPUB(entry.getKeyData()));
                         break;
                     case PSBT.PSBT_GLOBAL_VERSION:
-                        Log("version:" + Integer.valueOf(Hex.toHexString(entry.getKeyData()), 10), true);
+                        Log("version:" + Integer.valueOf(Hex.toHexString(entry.getKeyData()), 10));
                         break;
                     case PSBT.PSBT_GLOBAL_PROPRIETARY:
-                        Log("proprietary global data", true);
+                        Log("proprietary global data");
                         break;
                     default:
-                        Log("not recognized key type:" + entry.getKeyType()[0], true);
+                        Log("not recognized key type:" + entry.getKeyType()[0]);
                         break;
                 }
             }
@@ -302,14 +301,14 @@ public class PSBT {
                     psbtInputs.add(entry);
 
                     if(entry.getKeyType()[0] == PSBT_IN_BIP32_DERIVATION)    {
-                        Log("fingerprint:" + Hex.toHexString(getFingerprintFromDerivationData(entry.getData())), true);
+                        Log("fingerprint:" + Hex.toHexString(getFingerprintFromDerivationData(entry.getData())));
                     }
                 }
                 else if(entry.getKeyType()[0] >= PSBT_IN_PROPRIETARY)    {
-                    Log("proprietary input data", true);
+                    Log("proprietary input data");
                 }
                 else    {
-                    Log("not recognized key type:" + entry.getKeyType()[0], true);
+                    Log("not recognized key type:" + entry.getKeyType()[0]);
                 }
             }
             else if(currentState == STATE_OUTPUTS)    {
@@ -317,32 +316,32 @@ public class PSBT {
                     psbtOutputs.add(entry);
 
                     if(entry.getKeyType()[0] == PSBT_OUT_BIP32_DERIVATION)    {
-                        Log("fingerprint:" + Hex.toHexString(getFingerprintFromDerivationData(entry.getData())), true);
+                        Log("fingerprint:" + Hex.toHexString(getFingerprintFromDerivationData(entry.getData())));
                     }
                 }
                 else if(entry.getKeyType()[0] >= PSBT_OUT_PROPRIETARY)    {
-                    Log("proprietary output data", true);
+                    Log("proprietary output data");
                 }
                 else    {
-                    Log("not recognized key type:" + entry.getKeyType()[0], true);
+                    Log("not recognized key type:" + entry.getKeyType()[0]);
                 }
             }
             else if(currentState == STATE_END)    {
-                Log("end PSBT", true);
+                Log("end PSBT");
             }
             else    {
-                Log("panic", true);
+                Log("panic");
             }
 
         }
 
         if(currentState == STATE_END)   {
-            Log("--- ***** END ***** ---", true);
+            Log("--- ***** END ***** ---");
 
             parseOK = true;
         }
 
-        Log("", true);
+        Log("");
 
     }
 
@@ -352,34 +351,34 @@ public class PSBT {
 
         try {
             int keyLen = PSBT.readCompactInt(psbtByteBuffer);
-            Log("key length:" + keyLen, true);
+            Log("key length:" + keyLen);
 
             if(keyLen == 0x00)    {
-                Log("separator 0x00", true);
+                Log("separator 0x00");
                 return entry;
             }
 
             byte[] key = new byte[keyLen];
             psbtByteBuffer.get(key);
-            Log("key:" + Hex.toHexString(key), true);
+            Log("key:" + Hex.toHexString(key));
 
             byte[] keyType = new byte[1];
             keyType[0] = key[0];
-            Log("key type:" + Hex.toHexString(keyType), true);
+            Log("key type:" + Hex.toHexString(keyType));
 
             byte[] keyData = null;
             if(key.length > 1)    {
                 keyData = new byte[key.length - 1];
                 System.arraycopy(key, 1, keyData, 0, keyData.length);
-                Log("key data:" + Hex.toHexString(keyData), true);
+                Log("key data:" + Hex.toHexString(keyData));
             }
 
             int dataLen = PSBT.readCompactInt(psbtByteBuffer);
-            Log("data length:" + dataLen, true);
+            Log("data length:" + dataLen);
 
             byte[] data = new byte[dataLen];
             psbtByteBuffer.get(data);
-            Log("data:" + Hex.toHexString(data), true);
+            Log("data:" + Hex.toHexString(data));
 
             entry.setKey(key);
             entry.setKeyType(keyType);
@@ -390,13 +389,170 @@ public class PSBT {
 
         }
         catch(Exception e) {
-            Log("Exception:" + e.getMessage(), true);
+            Log("Exception:" + e.getMessage());
             e.printStackTrace();
             return null;
         }
 
     }
 
+    private void parse2() throws Exception {
+        int seenInputs2 = 0;
+        int seenOutputs2 = 0;
+
+        ByteBuffer psbtByteBuffer2 = ByteBuffer.wrap(psbtBytes);
+
+        byte[] magicBuf = new byte[4];
+        psbtByteBuffer2.get(magicBuf);
+        if (!PSBT_MAGIC.equalsIgnoreCase(Hex.toHexString(magicBuf))) {
+            throw new Exception("Invalid magic value");
+        }
+
+        byte sep = psbtByteBuffer2.get();
+        if (sep != (byte) 0xff) {
+            throw new Exception("Bad 0xff separator:" + Hex.toHexString(new byte[] { sep }));
+        }
+
+        int currentState = STATE_GLOBALS;
+        List<PSBTEntry> globalEntries2 = new ArrayList<>();
+        List<List<PSBTEntry>> inputEntryLists2 = new ArrayList<>();
+        List<List<PSBTEntry>> outputEntryLists2 = new ArrayList<>();
+
+        List<PSBTEntry> inputEntries2 = new ArrayList<>();
+        List<PSBTEntry> outputEntries2 = new ArrayList<>();
+
+        while (psbtByteBuffer2.hasRemaining()) {
+            PSBTEntry entry = new PSBTEntry(psbtByteBuffer2);
+
+            if(entry.getKey() == null) {         // length == 0
+                switch (currentState) {
+                    case STATE_GLOBALS:
+                        currentState = STATE_INPUTS;
+                        parseGlobalEntries(globalEntries2);
+                        break;
+                    case STATE_INPUTS:
+                        inputEntryLists2.add(inputEntries2);
+                        inputEntries2 = new ArrayList<>();
+
+                        seenInputs2++;
+                        if (seenInputs2 == inputs) {
+                            currentState = STATE_OUTPUTS;
+                            parseInputEntries(inputEntryLists2);
+                        }
+                        break;
+                    case STATE_OUTPUTS:
+                        outputEntryLists2.add(outputEntries2);
+                        outputEntries2 = new ArrayList<>();
+
+                        seenOutputs2++;
+                        if (seenOutputs2 == outputs) {
+                            currentState = STATE_END;
+                            parseOutputEntries(outputEntryLists2);
+                        }
+                        break;
+                    case STATE_END:
+                        break;
+                    default:
+                        throw new Exception("PSBT structure invalid");
+                }
+            } else if (currentState == STATE_GLOBALS) {
+                globalEntries2.add(entry);
+            } else if (currentState == STATE_INPUTS) {
+                inputEntries2.add(entry);
+            } else if (currentState == STATE_OUTPUTS) {
+                outputEntries2.add(entry);
+            } else {
+                throw new Exception("PSBT structure invalid");
+            }
+        }
+    }
+
+    private void parseGlobalEntries(List<PSBTEntry> globalEntries) throws Exception {
+        PSBTEntry duplicate = findDuplicateKey(globalEntries);
+        if(duplicate != null) {
+            throw new Exception("Found duplicate key for PSBT global: " + Hex.toHexString(duplicate.getKey()));
+        }
+
+        for(PSBTEntry entry : globalEntries) {
+            switch(entry.getKeyType()[0]) {
+                case PSBT_GLOBAL_UNSIGNED_TX:
+                    entry.checkOneByteKey();
+                    Transaction transaction = new Transaction(params, entry.getData());
+                    transaction.verify();
+                    inputs = transaction.getInputs().size();
+                    outputs = transaction.getOutputs().size();
+                    Log("Transaction with txid: " + transaction.getHash().toString() + " version " + transaction.getVersion() + " size " + transaction.getMessageSize() + " locktime " + transaction.getLockTime());
+                    for(TransactionInput input: transaction.getInputs()) {
+                        if(input.getScriptSig().getProgram().length != 0) {
+                            throw new Exception("Unsigned tx input does not have empty scriptSig");
+                        }
+                        Log(" Transaction input references txid: " + input.getOutpoint().getHash() + " vout " + input.getOutpoint().getIndex() + " with script " + input.getScriptSig());
+                    }
+                    for(TransactionOutput output: transaction.getOutputs()) {
+                        try {
+                            //Log(" Transaction output value: " + output.getValue() + " to addresses " + Arrays.asList(output.getScript().getToAddresses()) + " with script hex " + Hex.toHexString(output.getScript().getProgram()) + " to script " + output.getScript());
+                            //TODO: output script SPIKE
+                            Log("This is the script of the output: " + output.getScriptPubKey() + output.getScriptBytes());
+                        } catch(Exception e) {
+                            //Log(" Transaction output value: " + output.getValue() + " with script hex " + Utils.bytesToHex(output.getScript().getProgram()) + " to script " + output.getScript(), true);
+                            Log("NO SCRIPT IN OUTPUT");
+                        }
+                    }
+                    this.transaction = transaction;
+                    break;
+                case PSBT_GLOBAL_XPUB:
+                    if (entry.getKeyData() != null)
+                        Log("xpub: " + serializeXPUB(entry.getKeyData()));
+                    break;
+                case PSBT_GLOBAL_VERSION:
+                    Log("version:" + Integer.valueOf(Hex.toHexString(entry.getKeyData()), 10));
+                    break;
+                case PSBT_GLOBAL_PROPRIETARY:
+                    Log("proprietary global data");
+                    break;
+                default:
+                    Log("PSBT global not recognized key type: " + entry.getKeyType());
+            }
+        }
+    }
+
+    private void parseInputEntries(List<List<PSBTEntry>> inputEntryLists) throws Exception {
+        for(List<PSBTEntry> inputEntries : inputEntryLists) {
+            PSBTEntry duplicate = findDuplicateKey(inputEntries);
+            if(duplicate != null) {
+                throw new Exception("Found duplicate key for PSBT input: " + Hex.toHexString(duplicate.getKey()));
+            }
+
+            //int inputIndex = this.psbtInputs.size();
+            //PSBTInput input = new PSBTInput(this, inputEntries, transaction, inputIndex);
+            //this.psbtInputs.add(input);
+        }
+
+        //verifySignatures(psbtInputs);
+    }
+
+    private void parseOutputEntries(List<List<PSBTEntry>> outputEntryLists) throws Exception {
+        for(List<PSBTEntry> outputEntries : outputEntryLists) {
+            PSBTEntry duplicate = findDuplicateKey(outputEntries);
+            if(duplicate != null) {
+                throw new Exception("Found duplicate key for PSBT output: " + Hex.toHexString(duplicate.getKey()));
+            }
+
+            //PSBTOutput output = new PSBTOutput(outputEntries);
+            //this.psbtOutputs.add(output);
+        }
+    }
+
+    private PSBTEntry findDuplicateKey(List<PSBTEntry> entries) {
+        Set<String> checkSet = new HashSet<>();
+        for(PSBTEntry entry: entries) {
+            if(!checkSet.add(Hex.toHexString(entry.getKey())) ) {
+                return entry;
+            }
+        }
+
+        return null;
+    }
     //
     // writer
     //
@@ -965,15 +1121,13 @@ public class PSBT {
         }
     }
 
-    private void Log(String s, boolean eol)  {
+    private void Log(String s)  {
 
         if(bDebug)  {
             sbLog.append(s);
             System.out.print(s);
-            if(eol)    {
-                sbLog.append("\n");
-                System.out.print("\n");
-            }
+            sbLog.append("\n");
+            System.out.print("\n");
         }
 
     }
