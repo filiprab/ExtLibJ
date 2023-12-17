@@ -57,35 +57,39 @@ public class PSBT {
 
     private static final int HARDENED = 0x80000000;
 
-    private static final int STATE_START = 0;
     private static final int STATE_GLOBALS = 1;
     private static final int STATE_INPUTS = 2;
     private static final int STATE_OUTPUTS = 3;
     private static final int STATE_END = 4;
 
-    private int currentState = 0;
     private int inputs = 0;
     private int outputs = 0;
-    private int globals = 0;
     private boolean parseOK = false;
 
     private String strPSBT = null;
     private byte[] psbtBytes = null;
-    private ByteBuffer psbtByteBuffer = null;
     private NetworkParameters params = null;
     private Transaction transaction = null;
-    private List<PSBTEntry> psbtInputs = null;
-    private List<PSBTEntry> psbtOutputs = null;
 
-    private List<PSBTEntry> psbtGlobals = null;
+    private List<PSBTEntry> globalEntries = null;
+    private List<List<PSBTEntry>> inputEntryLists = null;
+    private List<List<PSBTEntry>> outputEntryLists = null;
+
+    private List<PSBTEntry> inputEntries = null;
+    private List<PSBTEntry> outputEntries = null;
+
+    private HashMap<Integer, byte[]> finalScriptWitMap = new HashMap<>();
 
     private StringBuilder sbLog = null;
     private static boolean bDebug = false;
 
     public PSBT(Transaction transaction)   {
-        psbtInputs = new ArrayList<>();
-        psbtOutputs = new ArrayList<>();
-        psbtGlobals = new ArrayList<>();
+        inputEntryLists = new ArrayList<>();
+        outputEntryLists = new ArrayList<>();
+        globalEntries = new ArrayList<>();
+        inputEntries = new ArrayList<>();
+        outputEntries = new ArrayList<>();
+
         setTransaction(transaction);
         sbLog = new StringBuilder();
     }
@@ -131,7 +135,6 @@ public class PSBT {
         ret = new PSBT(strPSBT, params);
         ret.setDebug(bDebug);
         ret.parse();
-        //ret.parse2();
         /*
         if(ret.isParseOK())    {
             return ret;
@@ -162,9 +165,11 @@ public class PSBT {
             return;
         }
 
-        psbtInputs = new ArrayList<PSBTEntry>();
-        psbtOutputs = new ArrayList<PSBTEntry>();
-        psbtGlobals = new ArrayList<>();
+        inputEntryLists = new ArrayList<>();
+        outputEntryLists = new ArrayList<>();
+        globalEntries = new ArrayList<>();
+        inputEntries = new ArrayList<>();
+        outputEntries = new ArrayList<>();
 
         if(FormatsUtilGeneric.getInstance().isBase64(strPSBT) && !FormatsUtilGeneric.getInstance().isHex(strPSBT))    {
             this.strPSBT = Hex.toHexString(Base64.decode(strPSBT));
@@ -177,8 +182,6 @@ public class PSBT {
         }
 
         psbtBytes = Hex.decode(this.strPSBT);
-        psbtByteBuffer = ByteBuffer.wrap(psbtBytes);
-
         sbLog = new StringBuilder();
         this.params = params;
     }
@@ -190,264 +193,53 @@ public class PSBT {
     //
     // reader
     //
-    public void read() throws Exception    {
 
+    private void parse() throws Exception {
         int seenInputs = 0;
         int seenOutputs = 0;
-        int seenGlobals = 0;
 
-        psbtBytes = Hex.decode(strPSBT);
-        psbtByteBuffer = ByteBuffer.wrap(psbtBytes);
-
-        Log("--- ***** START ***** ---");
-        Log("---  PSBT length:" + psbtBytes.length + " ---");
-        Log("--- parsing header ---");
+        ByteBuffer psbtByteBuffer = ByteBuffer.wrap(psbtBytes);
 
         byte[] magicBuf = new byte[4];
         psbtByteBuffer.get(magicBuf);
-        if(!PSBT.PSBT_MAGIC.equalsIgnoreCase(Hex.toHexString(magicBuf)))    {
-            throw new Exception("Invalid magic value");
-        }
-
-        byte sep = psbtByteBuffer.get();
-        if(sep != PSBT_HEADER_SEPARATOR)    {
-            throw new Exception("Bad 0xff separator:" + Hex.toHexString(new byte[] { sep }));
-        }
-
-        currentState = STATE_GLOBALS;
-
-        while(psbtByteBuffer.hasRemaining()) {
-
-            if(currentState == STATE_GLOBALS)    {
-                Log("--- parsing globals ---");
-            }
-            else if(currentState == STATE_INPUTS)   {
-                Log("--- parsing inputs ---");
-            }
-            else if(currentState == STATE_OUTPUTS)   {
-                Log("--- parsing outputs ---");
-            }
-            else    {
-                ;
-            }
-
-            PSBTEntry entry = parse();
-            if(entry == null)    {
-                Log("parse returned null entry");
-//                exit(0);
-            }
-            entry.setState(currentState);
-
-            if(entry.getKey() == null)    {         // length == 0
-                switch (currentState)   {
-                    case STATE_GLOBALS:
-                        psbtGlobals.add(entry);
-                        seenGlobals++;
-                        if(seenGlobals == 2) { // TODO: THIS NEEDS TO BE CHANGED
-                            // (it only works if we are expecting 2 globals)
-                            currentState = STATE_INPUTS;
-                        }
-                        break;
-                    case STATE_INPUTS:
-                        psbtInputs.add(entry);
-                        seenInputs++;
-                        if(seenInputs == inputs)   {
-                            currentState = STATE_OUTPUTS;
-                        }
-                        break;
-                    case STATE_OUTPUTS:
-                        psbtOutputs.add(entry);
-                        seenOutputs++;
-                        if(seenOutputs == outputs)   {
-                            currentState = STATE_END;
-                        }
-                        break;
-                    case STATE_END:
-                        parseOK = true;
-                        break;
-                    default:
-                        Log("unknown state");
-                        break;
-                }
-            }
-            else if(currentState == STATE_GLOBALS)    {
-                switch(entry.getKeyType()[0])    {
-                    case PSBT.PSBT_GLOBAL_UNSIGNED_TX:
-                        Log("transaction");
-                        transaction = new Transaction(params, entry.getData());
-                        inputs = transaction.getInputs().size();
-                        outputs = transaction.getOutputs().size();
-                        Log("inputs:" + inputs);
-                        Log("outputs:" + outputs);
-                        Log(transaction.toString());
-                        break;
-                    case PSBT.PSBT_GLOBAL_XPUB:
-                        if (entry.getKeyData() != null)
-                            Log("xpub: " + serializeXPUB(entry.getKeyData()));
-                        break;
-                    case PSBT.PSBT_GLOBAL_VERSION:
-                        Log("version:" + Integer.valueOf(Hex.toHexString(entry.getKeyData()), 10));
-                        break;
-                    case PSBT.PSBT_GLOBAL_PROPRIETARY:
-                        Log("proprietary global data");
-                        break;
-                    default:
-                        Log("not recognized key type:" + entry.getKeyType()[0]);
-                        break;
-                }
-            }
-            else if(currentState == STATE_INPUTS)    {
-                if(entry.getKeyType()[0] >= PSBT_IN_NON_WITNESS_UTXO && entry.getKeyType()[0] <= PSBT_IN_POR_COMMITMENT)    {
-                    psbtInputs.add(entry);
-
-                    if(entry.getKeyType()[0] == PSBT_IN_BIP32_DERIVATION)    {
-                        Log("fingerprint:" + Hex.toHexString(getFingerprintFromDerivationData(entry.getData())));
-                    }
-                }
-                else if(entry.getKeyType()[0] >= PSBT_IN_PROPRIETARY)    {
-                    Log("proprietary input data");
-                }
-                else    {
-                    Log("not recognized key type:" + entry.getKeyType()[0]);
-                }
-            }
-            else if(currentState == STATE_OUTPUTS)    {
-                if(entry.getKeyType()[0] >= PSBT_OUT_REDEEM_SCRIPT && entry.getKeyType()[0] <= PSBT_OUT_BIP32_DERIVATION)    {
-                    psbtOutputs.add(entry);
-
-                    if(entry.getKeyType()[0] == PSBT_OUT_BIP32_DERIVATION)    {
-                        Log("fingerprint:" + Hex.toHexString(getFingerprintFromDerivationData(entry.getData())));
-                    }
-                }
-                else if(entry.getKeyType()[0] >= PSBT_OUT_PROPRIETARY)    {
-                    Log("proprietary output data");
-                }
-                else    {
-                    Log("not recognized key type:" + entry.getKeyType()[0]);
-                }
-            }
-            else if(currentState == STATE_END)    {
-                Log("end PSBT");
-            }
-            else    {
-                Log("panic");
-            }
-
-        }
-
-        if(currentState == STATE_END)   {
-            Log("--- ***** END ***** ---");
-
-            parseOK = true;
-        }
-
-        Log("");
-
-    }
-
-    private PSBTEntry parse()    {
-
-        PSBTEntry entry = new PSBTEntry();
-
-        try {
-            int keyLen = PSBT.readCompactInt(psbtByteBuffer);
-            Log("key length:" + keyLen);
-
-            if(keyLen == 0x00)    {
-                Log("separator 0x00");
-                return entry;
-            }
-
-            byte[] key = new byte[keyLen];
-            psbtByteBuffer.get(key);
-            Log("key:" + Hex.toHexString(key));
-
-            byte[] keyType = new byte[1];
-            keyType[0] = key[0];
-            Log("key type:" + Hex.toHexString(keyType));
-
-            byte[] keyData = null;
-            if(key.length > 1)    {
-                keyData = new byte[key.length - 1];
-                System.arraycopy(key, 1, keyData, 0, keyData.length);
-                Log("key data:" + Hex.toHexString(keyData));
-            }
-
-            int dataLen = PSBT.readCompactInt(psbtByteBuffer);
-            Log("data length:" + dataLen);
-
-            byte[] data = new byte[dataLen];
-            psbtByteBuffer.get(data);
-            Log("data:" + Hex.toHexString(data));
-
-            entry.setKey(key);
-            entry.setKeyType(keyType);
-            entry.setKeyData(keyData);
-            entry.setData(data);
-
-            return entry;
-
-        }
-        catch(Exception e) {
-            Log("Exception:" + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-    private void parse2() throws Exception {
-        int seenInputs2 = 0;
-        int seenOutputs2 = 0;
-
-        ByteBuffer psbtByteBuffer2 = ByteBuffer.wrap(psbtBytes);
-
-        byte[] magicBuf = new byte[4];
-        psbtByteBuffer2.get(magicBuf);
         if (!PSBT_MAGIC.equalsIgnoreCase(Hex.toHexString(magicBuf))) {
             throw new Exception("Invalid magic value");
         }
 
-        byte sep = psbtByteBuffer2.get();
+        byte sep = psbtByteBuffer.get();
         if (sep != (byte) 0xff) {
             throw new Exception("Bad 0xff separator:" + Hex.toHexString(new byte[] { sep }));
         }
 
         int currentState = STATE_GLOBALS;
-        List<PSBTEntry> globalEntries2 = new ArrayList<>();
-        List<List<PSBTEntry>> inputEntryLists2 = new ArrayList<>();
-        List<List<PSBTEntry>> outputEntryLists2 = new ArrayList<>();
 
-        List<PSBTEntry> inputEntries2 = new ArrayList<>();
-        List<PSBTEntry> outputEntries2 = new ArrayList<>();
-
-        while (psbtByteBuffer2.hasRemaining()) {
-            PSBTEntry entry = new PSBTEntry(psbtByteBuffer2);
+        while (psbtByteBuffer.hasRemaining()) {
+            PSBTEntry entry = new PSBTEntry(psbtByteBuffer);
 
             if(entry.getKey() == null) {         // length == 0
                 switch (currentState) {
                     case STATE_GLOBALS:
                         currentState = STATE_INPUTS;
-                        parseGlobalEntries(globalEntries2);
+                        parseGlobalEntries(globalEntries);
                         break;
                     case STATE_INPUTS:
-                        inputEntryLists2.add(inputEntries2);
-                        inputEntries2 = new ArrayList<>();
+                        inputEntryLists.add(inputEntries);
+                        inputEntries = new ArrayList<>();
 
-                        seenInputs2++;
-                        if (seenInputs2 == inputs) {
+                        seenInputs++;
+                        if (seenInputs == inputs) {
                             currentState = STATE_OUTPUTS;
-                            parseInputEntries(inputEntryLists2);
+                            parseInputEntries(inputEntryLists);
                         }
                         break;
                     case STATE_OUTPUTS:
-                        outputEntryLists2.add(outputEntries2);
-                        outputEntries2 = new ArrayList<>();
+                        outputEntryLists.add(outputEntries);
+                        outputEntries = new ArrayList<>();
 
-                        seenOutputs2++;
-                        if (seenOutputs2 == outputs) {
+                        seenOutputs++;
+                        if (seenOutputs == outputs) {
                             currentState = STATE_END;
-                            parseOutputEntries(outputEntryLists2);
+                            parseOutputEntries(outputEntryLists);
                         }
                         break;
                     case STATE_END:
@@ -456,11 +248,11 @@ public class PSBT {
                         throw new Exception("PSBT structure invalid");
                 }
             } else if (currentState == STATE_GLOBALS) {
-                globalEntries2.add(entry);
+                globalEntries.add(entry);
             } else if (currentState == STATE_INPUTS) {
-                inputEntries2.add(entry);
+                inputEntries.add(entry);
             } else if (currentState == STATE_OUTPUTS) {
-                outputEntries2.add(entry);
+                outputEntries.add(entry);
             } else {
                 throw new Exception("PSBT structure invalid");
             }
@@ -549,6 +341,9 @@ public class PSBT {
             if(!checkSet.add(Hex.toHexString(entry.getKey())) ) {
                 return entry;
             }
+            if (ByteBuffer.wrap(entry.getKeyType()).getInt() == PSBT_IN_FINAL_SCRIPTWITNESS) {
+                System.out.println("Eureka!: " + new String (Hex.toHexString(entry.getData())));
+            }
         }
 
         return null;
@@ -566,7 +361,7 @@ public class PSBT {
     }
 
     public void addGlobal(byte type, byte[] keydata, byte[] data) throws Exception {
-        psbtGlobals.add(populateEntry(type, keydata, data));
+        globalEntries.add(populateEntry(type, keydata, data));
     }
 
     public void addInput(NetworkParameters params, byte[] fingerprint, ECKey eckey, long amount, int purpose, int type, int account, int chain, int index) throws Exception    {
@@ -633,7 +428,7 @@ public class PSBT {
 
      */
     public void addInput(byte type, byte[] keydata, byte[] data) throws Exception {
-        psbtInputs.add(populateEntry(type, keydata, data));
+        inputEntries.add(populateEntry(type, keydata, data));
     }
 
     public void addOutput(NetworkParameters params, byte[] fingerprint, ECKey eckey, int purpose, int type, int account, int chain, int index) throws Exception    {
@@ -648,19 +443,19 @@ public class PSBT {
     }
 
     public void addOutput(byte type, byte[] keydata, byte[] data) throws Exception {
-        psbtOutputs.add(populateEntry(type, keydata, data));
+        outputEntries.add(populateEntry(type, keydata, data));
     }
 
     public void addInputSeparator()  {
-        psbtInputs.add(new PSBTEntry());
+        inputEntries.add(new PSBTEntry());
     }
 
     public void addOutputSeparator()    {
-        psbtOutputs.add(new PSBTEntry());
+        outputEntries.add(new PSBTEntry());
     }
 
     public void addGlobalSeparator() {
-        psbtGlobals.add(new PSBTEntry());
+        globalEntries.add(new PSBTEntry());
     }
 
     private PSBTEntry populateEntry(byte type, byte[] keydata, byte[] data) throws Exception {
@@ -700,28 +495,9 @@ public class PSBT {
         baos.write(txLen, 0, txLen.length);                             // value length
         baos.write(serialized, 0, serialized.length);                   // value
         baos.write((byte)0x00);
-/*
-        for(PSBTEntry entry : psbtGlobals)   {
-            if(entry.getKey() == null)   {
-                baos.write((byte)0x00);
-            }
-            else   {
-                int keyLen = 1;
-                if(entry.getKeyData() != null)    {
-                    keyLen += entry.getKeyData().length;
-                }
-                baos.write(writeCompactInt(keyLen));
-                baos.write(entry.getKey());
-                baos.write(writeCompactInt(entry.getData().length));
-                baos.write(entry.getData());
-            }
-        }
-
- */
-
 
         // inputs
-        for(PSBTEntry entry : psbtInputs)   {
+        for(PSBTEntry entry : inputEntries)   {
             if(entry.getKey() == null)   {
                 baos.write((byte)0x00);
             }
@@ -738,7 +514,7 @@ public class PSBT {
         }
 
         // outputs
-        for(PSBTEntry entry : psbtOutputs)   {
+        for(PSBTEntry entry : outputEntries)   {
             if(entry.getKey() == null)   {
                 baos.write((byte)0x00);
             }
@@ -756,7 +532,6 @@ public class PSBT {
 
         psbtBytes = baos.toByteArray();
         strPSBT = Hex.toHexString(psbtBytes);
-//        Log("psbt:" + strPSBT, true);
 
         return psbtBytes;
     }
@@ -766,19 +541,19 @@ public class PSBT {
     //
 
     public List<PSBTEntry> getPsbtInputs() {
-        return psbtInputs;
+        return inputEntries;
     }
 
     public void setPsbtInputs(List<PSBTEntry> psbtInputs) {
-        this.psbtInputs = psbtInputs;
+        this.inputEntries = psbtInputs;
     }
 
     public List<PSBTEntry> getPsbtOutputs() {
-        return psbtOutputs;
+        return outputEntries;
     }
 
     public void setPsbtOutputs(List<PSBTEntry> psbtOutputs) {
-        this.psbtOutputs = psbtOutputs;
+        this.outputEntries = psbtOutputs;
     }
 
     public Transaction getTransaction() {
@@ -800,11 +575,11 @@ public class PSBT {
 
     public void clear()  {
         transaction = new Transaction(params);
-        psbtInputs.clear();
-        psbtOutputs.clear();
+        inputEntries.clear();
+        outputEntries.clear();
+        globalEntries.clear();
         strPSBT = null;
         psbtBytes = null;
-        psbtByteBuffer.clear();
     }
 
     //
