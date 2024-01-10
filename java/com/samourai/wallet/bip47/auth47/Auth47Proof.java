@@ -5,6 +5,8 @@ import com.samourai.wallet.util.JSONUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
 
+import javax.management.Notification;
+
 public class Auth47Proof {
     private static final String AUTH47_RESPONSE = "1.0";
     private String auth47_response;     // '1.0'
@@ -28,6 +30,9 @@ public class Auth47Proof {
     }
 
     public String computeDestination(NetworkParameters params) {
+        if (StringUtils.isEmpty(nym) && StringUtils.isEmpty(address)) {
+            throw new IllegalArgumentException("Invalid proof: you must specify either proof.address or proof.nym");
+        }
         if (!StringUtils.isEmpty(nym)) {
             PaymentCode paymentCode = new PaymentCode(nym);
             return paymentCode.notificationAddress(params).getAddressString();
