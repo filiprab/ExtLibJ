@@ -132,14 +132,14 @@ public class SpendSelectionBoltzmann extends SpendSelection {
                 _utxos2 = utxosP2SH_P2WPKH;
                 selectedP2SH_P2WPKH = true;
             }
-            if (!selectedP2SH_P2WPKH && !selectedP2WPKH && valueP2WPKH > neededAmount) {
+            if (!selectedP2WPKH && valueP2WPKH > neededAmount) {
                 if (log.isDebugEnabled()) {
                     log.debug("set 2 P2WPKH");
                 }
                 _utxos2 = utxosP2WPKH;
                 selectedP2WPKH = true;
             }
-            if (!selectedP2SH_P2WPKH && !selectedP2WPKH && !selectedP2PKH && valueP2PKH > neededAmount) {
+            if (!selectedP2PKH && valueP2PKH > neededAmount) {
                 if (log.isDebugEnabled()) {
                     log.debug("set 2 P2PKH");
                 }
@@ -152,12 +152,12 @@ public class SpendSelectionBoltzmann extends SpendSelection {
 
         if ((_utxos1 == null || _utxos1.size() == 0) && (_utxos2 == null || _utxos2.size() == 0)) {
             // can't do boltzmann => revert change index
+            if (log.isDebugEnabled()) {
+                log.debug("can't do boltzmann");
+            }
+
             changeIndexHandler.set(initialChangeIndex, true);
             return null;
-        }
-
-        if (log.isDebugEnabled()) {
-            log.debug("boltzmann spend");
         }
 
         List<UTXO> _utxos1Shuffled = new ArrayList<>(_utxos1);
@@ -174,8 +174,16 @@ public class SpendSelectionBoltzmann extends SpendSelection {
 
         if (pair == null) {
             // can't do boltzmann => revert change index
+            if (log.isDebugEnabled()) {
+                log.debug("can't do boltzmann");
+            }
+
             changeIndexHandler.set(initialChangeIndex, true);
             return null;
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("boltzmann spend");
         }
 
         return new SpendSelectionBoltzmann(utxoProvider.getBipFormatSupplier(), pair);

@@ -270,6 +270,265 @@ public class SpendBuilderTest extends AbstractTest {
                 "02000000000105e93c5d03e89545aa69c933aa7818f2ef6fe0a2fb3d2c6193085c6306538be50d0300000000fdffffff82df04ea95d5725ae17c68ea40b3af7ea715d138e78ebd985be21a951e26c42d0600000000fdffffffd0e61bb0ec377930b4aafd6c9fb29ced8c4035a1a91947956a32e9801546273c0500000000fdffffff799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a0200000000fdffffffb6f61fac50b91214fd857f604b57fc111296d2316f20e625a247b0d368385df20400000000fdffffff040e26000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e01641e4d0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87409c0000000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388ac409c0000000000001976a9149bcdad097fa4695a3bdab991e3212da04002ce4088ac02483045022100feb694632373d9334d8b67f82a28d989cc93391ee53b9f1936898d7e9583438302201b1d40b66aca9fc9f2e0cac2247193115dbe26c4606e0eed1b5b318f5309effb0121032b6f9c80bcba58d5da83f8270a1a19a8f19109223d9e3df3c298bd6468bba6cc02483045022100f3dddf30dc0b4dd154bd8096d54a4e579fd6efeeba216a792b56402fcaa622de022065ad68dd975808be0af058c4eb4f9507b40b5015dc3738308ff7be834ab6ff4e012102b2a7e1a1911083a9a8750921de866e4f14afcbe0d3d9d934fecb5b6a5c0ce3a402483045022100933b1c345aff0898b6352661254bf0fb1cc928e0a63fa9b94402605c224bc945022019389c5365bc9711d62235b5921a9e0622d30bbe7806591007d70fd144212fc8012102bd1d0567294f540aff84cbbe0d999b81f58a2357939ca734576de20ec3730ec302483045022100bd5678a70607a34b2615c29bd1fb907605de824ebfee5aa3badca9f0ea0e145d022016945ff1efb180c5540e8cdd3abd79bad1edfbf6e33aa90b212364d5cc93f3fe0121020fd264b3db00aa2c43e4688e824f5a6e5247b8474620c3ce53cd20316a457a6402483045022100d05edcaa424b639f3e2eb4fe08eaa92e7c29bed41c5319bb4f329cb37d9568ba02207ea9aaea0905e10c8821bc624ab1d2db72f8c35a4dbe65fd3c98b370dedb5d9d012102fbb6632bb7263a07d4f3e43ea6e92922b86d813785068145c49de168ed21dd864e61bc00");
     }
 
+    @Test
+    public void stonewall_bip84_mixed_inputs() throws Exception {
+        long amount = 10000;
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Send to BIP84 Native Segwit Address");
+            log.debug("STONEWALL: Native Segwit & Segwit Compatibility inputs");
+        }
+
+        // set input utxos (Native Segwit & Segwit Compatibility)
+        UTXO utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        UTXO utxo2 = utxoProvider.addUtxo(depositWallet49, 100000);
+
+        // should select Boltzmann
+        SpendTx spendTx = spend(ADDRESS_BIP84, amount, true);
+
+        Map<String,Long> outputs = new LinkedHashMap<>();
+        outputs.put(ADDRESS_BIP84, amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89839L);
+        outputs.put(ADDRESS_CHANGE_84[1], amount);
+        outputs.put(ADDRESS_CHANGE_49[0], 89839L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 322, 322, 0, amount, 189678, BIP_FORMAT.SEGWIT_NATIVE,
+                outputs,
+                "4d9f054b9c19bf3cf4c83133703be4b67bc5d7874f6a39ab6eb3b38f40f17972",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000001716001465067bb1fa5b78ef20739a45d45fbfcb38df3268fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff0410270000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac8710270000000000001600142ecf8c3e5697f0513999ed3aa8ea9cd04d127355ef5e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ef5e01000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a8702473044022043979180e2173265990a63719089f122d65edf57156e98da2cacd3cc33b5860f02205152fcb9543609a849b20e4d955ac967e6d932e0343ba3bdfd11e2f2da1b6dfe012103ae5599fed083131de0a36309dd0f8078409a034db09c7347b1df2dc0eb0e33f102483045022100df68ce7783637f7bcd57305ffe79ed97342db3bc7802a988510de5898271511802200cb89cfe92bd2a1204fa6a87a70121a6c9b8d00bef71ea6768685daeda7dc04a01210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Native Segwit & Legacy inputs");
+        }
+
+        // set input utxos (Native Segwit & Legacy)
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet44, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP84, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP84, amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89809L);
+        outputs.put(ADDRESS_CHANGE_84[1], amount);
+        outputs.put(ADDRESS_CHANGE_44[0], 89809L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 382, 382, 0, amount, 189618, BIP_FORMAT.SEGWIT_NATIVE,
+                outputs,
+                "4ee8ac81bc2a12edcc21cee08b1f22e9c42b25d8d20e26280e9c51db1ad57ae8",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000006a473044022008f8b9e80a478cf15f0bee3b7614a40899a0ef75e148df244666d2fa5264910c02205887bfdcd3e97bc4a7c2322c00fb6cceabcea6b012ec7960d2ac6c31dd92ec030121032db9f8c0eeab5fd10c2be959bef213c622a715945b497f3a6567fd58eed83674fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff0410270000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac8710270000000000001600142ecf8c3e5697f0513999ed3aa8ea9cd04d127355d15e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d15e0100000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388ac000247304402205b15196ac852ee274ed11dff4bf0d3ed6f516f511a1f2434fbc4730f446a131102207c0bb74ccd6171dc64fc61b844c01d22cd32a09fa9c48c00a56bde327a33ea2701210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Segwit Compatibility & Legacy inputs");
+        }
+
+        // set input utxos (Segwit Compatibility & Legacy)
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet49, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet44, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP84, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP84, amount);
+        outputs.put(ADDRESS_CHANGE_84[0], amount);
+        outputs.put(ADDRESS_CHANGE_49[0], 89797L);
+        outputs.put(ADDRESS_CHANGE_44[0], 89797L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 406, 406, 0, amount, 189594, BIP_FORMAT.SEGWIT_NATIVE,
+                outputs,
+                "c194a2c265fe70b39ceb182490cdc99ebcef2373f383ac41b10df1eb87d24390",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000006a4730440220583402a9903cc79c919f016045985ce3ac870d091a5aa499bfa564290e65fa1f02207a2b40f04ba7586be18a8d50d78ab2c99914b9bc8b185df87a13e8428ba167a30121032db9f8c0eeab5fd10c2be959bef213c622a715945b497f3a6567fd58eed83674fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe010000001716001419c738493ea32c92bec2065a8bc15e7ef4c4aa8efdffffff0410270000000000001600142ecf8c3e5697f0513999ed3aa8ea9cd04d1273551027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164c55e0100000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388acc55e01000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a870002483045022100e8814dfa50761e91d51a7bd00c46fcdf2ab729cd27a94e9780e25b48bbf29cf00220723c317fd30a4309bc24c998cc13ca5f85d0f300a75b4c858b4ae449886c4864012102963d756cfa58dbd5dd4ac4e7845c6205e05978a53e23240128f67bbaf7b425404e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: 2 Native Segwit & 1 Segwit Compatibility inputs - Only select Native Segwit inputs");
+        }
+
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet84, 100000);
+        UTXO utxo3 = utxoProvider.addUtxo(depositWallet49, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP84, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP84, amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89851L);
+        outputs.put(ADDRESS_CHANGE_84[1], amount);
+        outputs.put(ADDRESS_CHANGE_84[2], 89851L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 298, 298, 0, amount, 189702, BIP_FORMAT.SEGWIT_NATIVE,
+                outputs,
+                "48f4ecda19091b39a18942d726ce8dabee894c8ada9a0da001fd26250a828cd4",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a0200000000fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff0410270000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac8710270000000000001600142ecf8c3e5697f0513999ed3aa8ea9cd04d127355fb5e0100000000001600144910e17f5ca698222657369753a164262605087afb5e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164024730440220673f25893961e275ae368e96f8b473234c6de895fd4c03c5b93c63d5bdd84d3e02203d50a481f73b34c728fbe48f6be62b747c5d459bb61d38f499a014c56ada8dfb0121020fd264b3db00aa2c43e4688e824f5a6e5247b8474620c3ce53cd20316a457a6402483045022100b51aaf7ecce80b355880cef90514bdf4e0eefeac0527601e5c1c3b9c31194746022014e1c913619869462ea338460aeeb487066b9b128a52f1b1db78373fba45c85001210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: 1 Native Segwit & 2 Segwit Compatibility inputs - Select 1 of each input");
+        }
+
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet49, 100000);
+        utxo3 = utxoProvider.addUtxo(depositWallet49, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP84, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP84, amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89839L);
+        outputs.put(ADDRESS_CHANGE_84[1], amount);
+        outputs.put(ADDRESS_CHANGE_49[0], 89839L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 322, 322, 0, amount, 189678, BIP_FORMAT.SEGWIT_NATIVE,
+                outputs,
+                "4d9f054b9c19bf3cf4c83133703be4b67bc5d7874f6a39ab6eb3b38f40f17972",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000001716001465067bb1fa5b78ef20739a45d45fbfcb38df3268fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff0410270000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac8710270000000000001600142ecf8c3e5697f0513999ed3aa8ea9cd04d127355ef5e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ef5e01000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a8702473044022043979180e2173265990a63719089f122d65edf57156e98da2cacd3cc33b5860f02205152fcb9543609a849b20e4d955ac967e6d932e0343ba3bdfd11e2f2da1b6dfe012103ae5599fed083131de0a36309dd0f8078409a034db09c7347b1df2dc0eb0e33f102483045022100df68ce7783637f7bcd57305ffe79ed97342db3bc7802a988510de5898271511802200cb89cfe92bd2a1204fa6a87a70121a6c9b8d00bef71ea6768685daeda7dc04a01210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+
+    }
+
+    @Test
+    public void stonewall_bip49_mixed_inputs() throws Exception {
+        long amount = 10000;
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Send to BIP84 Native Segwit Address");
+            log.debug("STONEWALL: Native Segwit & Segwit Compatibility inputs");
+        }
+
+        // set utxos (Native Segwit & Segwit Compatibility)
+        UTXO utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        UTXO utxo2 = utxoProvider.addUtxo(depositWallet49, 100000);
+
+        // should select Boltzmann
+        SpendTx spendTx = spend(ADDRESS_BIP49, amount, true);
+
+        Map<String,Long> outputs = new LinkedHashMap<>();
+        outputs.put(ADDRESS_BIP49, amount);
+        outputs.put(ADDRESS_CHANGE_49[0], 89839L);
+        outputs.put(ADDRESS_CHANGE_49[1], amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89839L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 322, 322, 0, amount, 189678, BIP_FORMAT.SEGWIT_COMPAT,
+                outputs,
+                "9fd9f828136b380596753808d7806f5d5c52c67222aaa7fe03011d5b25701fac",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000001716001465067bb1fa5b78ef20739a45d45fbfcb38df3268fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff04102700000000000017a914336caa13e08b96080a32b5d818d59b4ab3b3674287102700000000000017a914bd802e8596b61d5ba93166ea8d15e8aa13d383af87ef5e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ef5e01000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a8702483045022100b9041801586bfee5337737b502e3be6a9abe44e432965d3a2a32c7c94037a6ba02200e5f9fab2ee241875a9d15a886776f8f4d69331a04b291a41895073dd1831a83012103ae5599fed083131de0a36309dd0f8078409a034db09c7347b1df2dc0eb0e33f1024730440220292a917306e61cc61a77c129ae61690143df9d0c36d228e94fc10fd9ac06e27502205323bf49d383cac6df9ad51118066efffdd10422b5bfd9e6a4eeda5f633da34901210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Native Segwit & Legacy inputs");
+        }
+
+        // set utxos (Native Segwit & Legacy)
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet44, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP49, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP49, amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89809L);
+        outputs.put(ADDRESS_CHANGE_49[0], amount);
+        outputs.put(ADDRESS_CHANGE_44[0], 89809L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 382, 382, 0, amount, 189618, BIP_FORMAT.SEGWIT_COMPAT,
+                outputs,
+                "d75216837f6ac1977d6c0928d4b119b9e595c724f138fb02a60e8ae913dc5dac",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000006a473044022029e3225e07b76cfef2885606c59e6f0710008bd646b64410d84dd0979eb4796602201854b42930f1d97ec55be28ec6f33f909fc74cbe6dea995258b4956afdccf7e60121032db9f8c0eeab5fd10c2be959bef213c622a715945b497f3a6567fd58eed83674fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff04102700000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a87102700000000000017a914336caa13e08b96080a32b5d818d59b4ab3b3674287d15e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d15e0100000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388ac0002483045022100c570c7257afc66457af47e868872b4f0f6df205780fa63ae16ea6b1b4fc6407902204e71873d9f50535722560d7e41d6c2f15985414be198f0b2e6b087cb64176fda01210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Segwit Compatibility & Legacy inputs");
+        }
+
+        // set utxos (Segwit Compatibility & Legacy)
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet49, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet44, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP49, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP49, amount);
+        outputs.put(ADDRESS_CHANGE_49[0], 89797L);
+        outputs.put(ADDRESS_CHANGE_49[1], amount);
+        outputs.put(ADDRESS_CHANGE_44[0], 89797L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 406, 406, 0, amount, 189594, BIP_FORMAT.SEGWIT_COMPAT,
+                outputs,
+                "7a7f23bf0ca83c42d015a1bc372d62ad1dc0dd0f8fee3e3ebe52d19ed0989c39",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000006a47304402207a80559f5928f86a60931c21cba658bb49f0feeb233555d7eebe002b626992fe0220289e957d30a8e5bb53ffe667387499aab8927b1defd720741351da7be107d4710121032db9f8c0eeab5fd10c2be959bef213c622a715945b497f3a6567fd58eed83674fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe010000001716001419c738493ea32c92bec2065a8bc15e7ef4c4aa8efdffffff04102700000000000017a914336caa13e08b96080a32b5d818d59b4ab3b3674287102700000000000017a914bd802e8596b61d5ba93166ea8d15e8aa13d383af87c55e0100000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388acc55e01000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a870002483045022100c2673fc9c26d214c85a2b2ff15f67c00e532c13ea2bd1390b776dee8dab2a1b5022061e5ec76611d4a23f5dac9fd28b1b854b04dfe2bc6b80fd80d40967b6575f493012102963d756cfa58dbd5dd4ac4e7845c6205e05978a53e23240128f67bbaf7b425404e61bc00");
+    }
+
+    @Test
+    public void stonewall_bip44_mixed_inputs() throws Exception {
+        long amount = 10000;
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Send to BIP84 Native Segwit Address");
+            log.debug("STONEWALL: Native Segwit & Segwit Compatibility inputs");
+        }
+
+        // set utxos (Native Segwit & Segwit Compatibility)
+        UTXO utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        UTXO utxo2 = utxoProvider.addUtxo(depositWallet49, 100000);
+
+        // should select Boltzmann
+        SpendTx spendTx = spend(ADDRESS_BIP44, amount, true);
+
+        Map<String,Long> outputs = new LinkedHashMap<>();
+        outputs.put(ADDRESS_BIP44, amount);
+        outputs.put(ADDRESS_CHANGE_44[0], amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89839L);
+        outputs.put(ADDRESS_CHANGE_49[0], 89839L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 322, 322, 0, amount, 189678, BIP_FORMAT.LEGACY,
+                outputs,
+                "53293b45e531d5b3ba3c3e6dec5093a1a97bbc26acb7f5fc510b4d6bed30debb",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000001716001465067bb1fa5b78ef20739a45d45fbfcb38df3268fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff0410270000000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388ac10270000000000001976a9149bcdad097fa4695a3bdab991e3212da04002ce4088acef5e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ef5e01000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a870247304402207ffe5bf589c6f76fececf3b8c32d92c636165b0031806cf9161b62fcbbde21fe022013ff5b5abd6eb6468466f766080bd2204a6b155930490a8da073bcf2fd669863012103ae5599fed083131de0a36309dd0f8078409a034db09c7347b1df2dc0eb0e33f102473044022067007e0aa510d1a1ad45c1c147544051bfee0e8ff2873fec4e1d310778a03067022031057858c94e50d009ae7d30eded884ed644279551f7c5132d0bf223068ca0f501210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Native Segwit & Legacy inputs");
+        }
+
+        // set utxos (Native Segwit & Legacy)
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet84, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet44, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP44, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP44, amount);
+        outputs.put(ADDRESS_CHANGE_44[0], 89809L);
+        outputs.put(ADDRESS_CHANGE_44[1], amount);
+        outputs.put(ADDRESS_CHANGE_84[0], 89809L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 382, 382, 0, amount, 189618, BIP_FORMAT.LEGACY,
+                outputs,
+                "659d9e838949b2f9b4b6b5d5caf02794ef53af2fab86708d7bbbe223c9bdfab5",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000006a4730440220525edcc05b4f26c4698e3d8f6d4609d61acded7860b5a4703b8eabfb22251ac00220043dd47b3be8ebedaaf6a0f209185812bce2d8ae83464f26dfb8996182508cc00121032db9f8c0eeab5fd10c2be959bef213c622a715945b497f3a6567fd58eed83674fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe0100000000fdffffff0410270000000000001976a9149bcdad097fa4695a3bdab991e3212da04002ce4088ac10270000000000001976a914a0d8a066e4fac0a713ec4a8bee3f71dc6646bdbc88acd15e010000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d15e0100000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388ac0002473044022046016adf6cac02c6865d71ffa0dee4e1b164ebf53a110b17c3a25d4757e959f5022040a479b7b5db898540425a875309fc874f3371fbeb7201b76af389fc28266e8301210229950f82d3230b06db77c9aec65180e5bbf99fd837fe967dbabe4d9b0422146c4e61bc00");
+
+        if (log.isDebugEnabled()) {
+            log.debug("STONEWALL: Segwit Compatibility & Legacy inputs");
+        }
+
+        // set utxos (Segwit Compatibility & Legacy)
+        utxoProvider.clear();
+        utxo1 = utxoProvider.addUtxo(depositWallet49, 100000);
+        utxo2 = utxoProvider.addUtxo(depositWallet44, 100000);
+
+        // should select Boltzmann
+        spendTx = spend(ADDRESS_BIP44, amount, true);
+
+        outputs.clear();
+        outputs.put(ADDRESS_BIP44, amount);
+        outputs.put(ADDRESS_CHANGE_44[0], 89797L);
+        outputs.put(ADDRESS_CHANGE_44[1], amount);
+        outputs.put(ADDRESS_CHANGE_49[0], 89797L);
+        verifySpendTx(spendTx, SpendType.STONEWALL, Arrays.asList(utxo1, utxo2), 406, 406, 0, amount, 189594, BIP_FORMAT.LEGACY,
+                outputs,
+                "888a1e19b5c090529dea54bc7be2acd265a02ac3f4b63211c1e521c4b3482a5b",
+                "02000000000102799901cbde3146618639ddadf2ba79e568e2ed263f9aa046befdef30c681918a020000006b4830450221009d60daefa964586172a793c7a8a6a51f335e26bbc8ecc1a4ba8691815f280f5e02204326f1d40547c9a7c6f9f7e18ec245a4c8f428aa9a165ae214dc3cf98d72089d0121032db9f8c0eeab5fd10c2be959bef213c622a715945b497f3a6567fd58eed83674fdffffff3e3f0c4d7c92472be300847fa18669620222af52c416d307c519c2a7c544fabe010000001716001419c738493ea32c92bec2065a8bc15e7ef4c4aa8efdffffff0410270000000000001976a9149bcdad097fa4695a3bdab991e3212da04002ce4088ac10270000000000001976a914a0d8a066e4fac0a713ec4a8bee3f71dc6646bdbc88acc55e0100000000001976a91479f7962428741fa25e70036f6719e2c11efa75d388acc55e01000000000017a9142df6e5e10a713bed1d1753d78285c386dc20f34a87000247304402205cd8dfdbb7f9f8c7df8e1a81f667ed9afbeaf174989f94b8034b0207498e81aa02200dbdc9cffe2008ed3835b2d2743126461ab04bb4a634954354fd17fa9dedd80d012102963d756cfa58dbd5dd4ac4e7845c6205e05978a53e23240128f67bbaf7b425404e61bc00");
+    }
+
     private void verifySpendTx(SpendTx spendTx, SpendType spendType, Collection<UTXO> utxos, long minerFeeTotal, long minerFeePaid, long samouraiFee, long amount, long change, BipFormat changeFormat, Map<String,Long> outputsExpected, String txid, String raw) throws Exception {
         verifySpendTx(spendTx, spendType, utxos, minerFeeTotal, minerFeePaid, samouraiFee, amount, change, changeFormat);
 
