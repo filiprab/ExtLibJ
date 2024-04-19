@@ -19,6 +19,10 @@ public class XPUB {
     private static final int CHILD_LEN = 4;
     private static final int DEPTH_LEN = 1;
 
+    public static final int MAINNET = 0;
+    public static final int TESTNET = 1;
+    public static final int REGTEST = 2;
+
     public static final int MAGIC_XPUB = 0x0488B21E;
     public static final int MAGIC_TPUB = 0x043587CF;
     public static final int MAGIC_YPUB = 0x049D7CB2;
@@ -86,20 +90,19 @@ public class XPUB {
     }
 
     public int getPurpose() {
-        switch(version) {
-            case MAGIC_XPUB: case MAGIC_TPUB:
-                return Purpose.PURPOSE_44;
-            case MAGIC_YPUB: case MAGIC_UPUB:
-                return Purpose.PURPOSE_49;
-            case MAGIC_ZPUB: case MAGIC_VPUB:
-                return Purpose.PURPOSE_84;
-            default:
-                throw new RuntimeException("Unknown purpose for version: "+version);
-        }
+        return switch (version) {
+            case MAGIC_XPUB, MAGIC_TPUB -> Purpose.PURPOSE_44;
+            case MAGIC_YPUB, MAGIC_UPUB -> Purpose.PURPOSE_49;
+            case MAGIC_ZPUB, MAGIC_VPUB -> Purpose.PURPOSE_84;
+            default -> throw new RuntimeException("Unknown purpose for version: " + version);
+        };
     }
 
-    public boolean isTestnet() {
-        return version == MAGIC_TPUB || version == MAGIC_UPUB || version == MAGIC_VPUB;
+    public int getNetwork() {
+        if (version == MAGIC_TPUB || version == MAGIC_UPUB || version == MAGIC_VPUB) {
+            return TESTNET;  // or REGTEST
+        }
+        return MAINNET;
     }
 
     public int getFingerprint() {
@@ -115,7 +118,7 @@ public class XPUB {
     }
 
     public String getPathAddress(int chainIndex, int addressIndex) {
-        NetworkParameters params = FormatsUtilGeneric.getInstance().getNetworkParams(isTestnet());
+        NetworkParameters params = FormatsUtilGeneric.getInstance().getNetworkParams(getNetwork());
         int coinType = FormatsUtilGeneric.getInstance().getCoinType(params);
         return HD_Address.getPathAddress(getPurpose(), coinType, getAccount(), chainIndex, addressIndex);
     }

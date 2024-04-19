@@ -10,6 +10,9 @@ import org.bitcoinj.core.NetworkParameters;
 import org.json.JSONObject;
 
 public class BackupPayload {
+    private static final int MAINNET_NET_TYPE = 0;
+    private static final int TESTNET_NET_TYPE = 1;
+    private static final int REGTEST_NET_TYPE = 2;
     private JSONObject wallet;
     private JSONObject meta;
 
@@ -49,8 +52,20 @@ public class BackupPayload {
         return wallet.getBoolean("testnet");
     }
 
+    public boolean isWalletRegtest() {
+        if (!wallet.has("regtest")) {
+            return false;
+        }
+        return wallet.getBoolean("regtest");
+    }
+
     public NetworkParameters computeNetworkParameters() {
-        return FormatsUtilGeneric.getInstance().getNetworkParams(isWalletTestnet());
+        if (isWalletRegtest()) {
+            return FormatsUtilGeneric.getInstance().getNetworkParams(REGTEST_NET_TYPE);
+        } else if (isWalletTestnet()) {
+            return FormatsUtilGeneric.getInstance().getNetworkParams(TESTNET_NET_TYPE);
+        }
+        return FormatsUtilGeneric.getInstance().getNetworkParams(MAINNET_NET_TYPE);
     }
 
     public String getWalletSeed() {

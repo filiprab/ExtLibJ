@@ -4,6 +4,7 @@ import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
 
 import java.util.Optional;
@@ -19,7 +20,10 @@ public enum SamouraiNetwork {
           MainNetParams.get(),
           "1NwVafYT1s6SF5Atusv7A8MASzCvGruGXq"), // TODO
   LOCAL_TESTNET(TestNet3Params.get(),
-          "mi42XN9J3eLdZae4tjQnJnVkCcNDRuAtz4"); // TODO
+          "mi42XN9J3eLdZae4tjQnJnVkCcNDRuAtz4"), // TODO
+  LOCAL_REGTEST(
+          RegTestParams.get(),
+          "Malo by to byt jedno co sem dam");
 
   private NetworkParameters params;
   private String signingAddress;
@@ -35,26 +39,11 @@ public enum SamouraiNetwork {
     return params;
   }
 
-  public String getSigningAddress() {
-    return signingAddress;
-  }
-
-  // for tests
-  public void _setSigningAddress(String signingAddress) {
-    this.signingAddress = signingAddress;
-  }
-
   public static Optional<SamouraiNetwork> find(String value) {
     try {
       return Optional.of(valueOf(value));
     } catch (Exception e) {
       return Optional.empty();
     }
-  }
-
-  public static SamouraiNetwork getByNetworkParameters(NetworkParameters params) {
-    boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
-    SamouraiNetwork samouraiNetwork = isTestnet ? SamouraiNetwork.TESTNET : SamouraiNetwork.MAINNET;
-    return samouraiNetwork;
   }
 }

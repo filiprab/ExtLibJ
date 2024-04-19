@@ -92,7 +92,11 @@ public class XPUBTest {
     Assertions.assertEquals(pubkey, Util.bytesToHex(xpub.getPubkey()));
     Assertions.assertEquals(version, xpub.getVersion());
     Assertions.assertEquals(purpose, xpub.getPurpose());
-    Assertions.assertEquals(testnet, xpub.isTestnet());
+    if (testnet) {
+      Assertions.assertEquals(XPUB.TESTNET, xpub.getNetwork());
+    } else {
+      Assertions.assertEquals(XPUB.MAINNET, xpub.getNetwork());
+    }
 
     // getPathAddress
     Assertions.assertEquals(path_1_2, xpub.getPathAddress(1,2));

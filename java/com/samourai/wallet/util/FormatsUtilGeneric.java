@@ -12,6 +12,7 @@ import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.DeterministicKey;
 import org.bitcoinj.crypto.HDKeyDerivation;
 import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.uri.BitcoinURI;
 import org.bitcoinj.uri.BitcoinURIParseException;
@@ -50,6 +51,7 @@ public class FormatsUtilGeneric {
 
 	private static final int COINTYPE_MAINNET = 0;
 	private static final int COINTYPE_TESTNET = 1;
+	private static final int COINTYPE_REGTEST = 2;
 
 	private static FormatsUtilGeneric instance = null;
 
@@ -194,15 +196,29 @@ public class FormatsUtilGeneric {
 	}
 
 	public boolean isTestNet(NetworkParameters params) {
-		return params != null && !(params instanceof MainNetParams);
+		return params != null && !(params instanceof MainNetParams || params instanceof RegTestParams);
 	}
 
-	public NetworkParameters getNetworkParams(boolean testnet) {
-		return testnet ? TestNet3Params.get() : MainNetParams.get();
+	public boolean isRegtest(NetworkParameters params) {
+		return params != null && !(params instanceof MainNetParams || params instanceof TestNet3Params);
+	}
+
+	public NetworkParameters getNetworkParams(int networkType) {
+		return switch (networkType) {
+			case 0 -> MainNetParams.get();
+			case 1 -> TestNet3Params.get();
+			case 2 -> RegTestParams.get();
+            default -> throw new IllegalStateException("Unexpected value: " + networkType);
+        };
 	}
 
 	public int getCoinType(NetworkParameters params) {
-		return FormatsUtilGeneric.getInstance().isTestNet(params) ? COINTYPE_TESTNET : COINTYPE_MAINNET;
+		if (FormatsUtilGeneric.getInstance().isTestNet(params)) {
+			return COINTYPE_TESTNET;
+		} else if (FormatsUtilGeneric.getInstance().isRegtest(params)) {
+			return COINTYPE_REGTEST;
+		}
+		return COINTYPE_MAINNET;
 	}
 
 	public boolean isValidBitcoinAddress(final String address, NetworkParameters params) {
@@ -281,7 +297,7 @@ public class FormatsUtilGeneric {
 
 		if(isValidBech32(address))    {
 				Pair<Byte, byte[]> pair = Bech32Segwit.decode(address.substring(0, 2), address);
-				com.samourai.wallet.util.Triple<String, byte[], Integer> triple = Bech32.bech32Decode(address);
+				Triple<String, byte[], Integer> triple = Bech32.bech32Decode(address);
 				if(pair.getLeft() == (byte)0x01 && pair.getRight().length == 32 && triple.getRight() == Bech32.BECH32M)    {
 						return true;
 				}
@@ -294,7 +310,7 @@ public class FormatsUtilGeneric {
 
 		if(isValidBech32(address))    {
 				Pair<Byte, byte[]> pair = Bech32Segwit.decode(address.substring(0, 2), address);
-				com.samourai.wallet.util.Triple<String, byte[], Integer> triple = Bech32.bech32Decode(address);
+				Triple<String, byte[], Integer> triple = Bech32.bech32Decode(address);
 				if(pair.getLeft() == (byte)0x00 && pair.getRight().length == 32 && triple.getRight() == Bech32.BECH32)    {
 						return true;
 				}
